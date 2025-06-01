@@ -1,0 +1,18 @@
+-- Loader system ที่จะถูกโหลดจาก game:HttpGet("...")
+
+-- ตรวจว่าผู้ใช้ใส่คีย์ไว้ในตัวแปร script_key
+if not script_key then
+	warn("❌ กรุณาใส่ script_key ก่อนรันสคริปต์นี้")
+	return
+end
+
+-- ดึงคีย์จริงจาก Pastebin
+local realKey = game:HttpGet("https://pastebin.com/raw/YOUR_PASTE_ID") -- เปลี่ยนลิงก์ RAW ตรงนี้
+
+if script_key == realKey then
+	print("✅ Key ถูกต้อง กำลังโหลด Script จริง...")
+	-- โหลด script จริงจาก GitHub (หรือที่อื่น)
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/your_script.lua"))() -- เปลี่ยนลิงก์ตรงนี้
+else
+	warn("❌ คีย์ไม่ถูกต้อง หยุดทำงาน")
+end
