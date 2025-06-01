@@ -12,7 +12,7 @@ local realKey = game:HttpGet("https://pastebin.com/raw/eA35SqGz") -- เปล�
 if script_key == realKey then
 	print("✅ Key ถูกต้อง กำลังโหลด Script จริง...")
 	-- โหลด script จริงจาก GitHub (หรือที่อื่น)
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/your_script.lua"))() -- เปลี่ยนลิงก์ตรงนี้
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/ADMINDOGG/qwerrtyu/refs/heads/main/SCRIPT"))() -- เปลี่ยนลิงก์ตรงนี้
 else
 	warn("❌ คีย์ไม่ถูกต้อง หยุดทำงาน")
 end
