@@ -7,7 +7,7 @@ if not script_key then
 end
 
 -- ดึงคีย์จริงจาก Pastebin
-local realKey = game:HttpGet("https://pastebin.com/raw/eA35SqGz") -- เปลี่ยนลิงก์ RAW ตรงนี้
+local realKey = game:HttpGet("https://pastebin.com/raw/RPdkB92x") -- เปลี่ยนลิงก์ RAW ตรงนี้
 
 if script_key == realKey then
 	print("✅ Key ถูกต้อง กำลังโหลด Script จริง...")
