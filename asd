@@ -150,23 +150,14 @@ local function verifyKeyAndHWID(inputKey, userHWID)
 end
 
 -- เริ่มต้นการตรวจสอบ
-print("🔍 กำลังตรวจสอบ Key: " .. script_key)
-
 local userHWID = getHWID()
 local playerInfo = getPlayerInfo()
 local ipAddress = getIPAddress()
 local gameInfo = getGameInfo()
 
-print("💻 HWID ของคุณ: " .. userHWID)
-print("👤 ผู้เล่น: " .. playerInfo.username)
-print("🌐 IP: " .. ipAddress)
-
 local isValid, message = verifyKeyAndHWID(script_key, userHWID)
 
 if isValid then
-    print(message)
-    print("🚀 กำลังโหลด Script หลัก...")
-    
     -- ส่งข้อมูลไป Discord (สำเร็จ)
     sendToWebhook("success", script_key, userHWID, playerInfo, ipAddress, gameInfo, "Script executed successfully")
     
@@ -174,19 +165,13 @@ if isValid then
     local mainScriptSuccess = pcall(function()
         -- เปลี่ยน URL ตรงนี้เป็น script หลักของคุณ
         -- loadstring(game:HttpGet("https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/main_script.lua"))()
-        print("DONE - Script หลักถูกโหลดแล้ว")
+        print("DONE")
     end)
     
-    if mainScriptSuccess then
-        print("✅ โหลด Script สำเร็จ!")
-    else
-        warn("❌ เกิดข้อผิดพลาดในการโหลด Script หลัก")
+    if not mainScriptSuccess then
         sendToWebhook("failure", script_key, userHWID, playerInfo, ipAddress, gameInfo, "Failed to load main script")
     end
 else
-    warn(message)
-    warn("🔑 หากต้องการลงทะเบียน Key ใหม่ ให้ติดต่อแอดมิน")
-    
     -- ส่งข้อมูลไป Discord (ล้มเหลว)
     sendToWebhook("failure", script_key, userHWID, playerInfo, ipAddress, gameInfo, message)
 end
