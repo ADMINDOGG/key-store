@@ -1,3 +1,4 @@
+--NEW DONE
 -- Simple Key Verification Loader with Discord Webhook Logging
 -- ใช้งาน: script_key="YOUR_KEY_HERE"; loadstring(game:HttpGet("URL"))()
 
@@ -5,8 +6,6 @@ local webhookURL = "https://discord.com/api/webhooks/1375147331980099594/5758wuu
 
 -- ตรวจสอบว่าผู้ใช้ใส่ script_key หรือไม่
 if not script_key then
-    warn("❌ กรุณาใส่ script_key ก่อนรันสคริปต์นี้")
-    warn("ตัวอย่าง: script_key=\"BQ27-FK38-MZN2\"; loadstring(game:HttpGet(\"URL\"))()")
     return
 end
 
@@ -118,7 +117,6 @@ local function verifyKeyAndHWID(inputKey, userHWID)
     end)
     
     if not success then
-        warn("❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้")
         return false, "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้"
     end
     
@@ -165,7 +163,6 @@ if isValid then
     local mainScriptSuccess = pcall(function()
         -- เปลี่ยน URL ตรงนี้เป็น script หลักของคุณ
         -- loadstring(game:HttpGet("https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/main_script.lua"))()
-        print("DONE")
     end)
     
     if not mainScriptSuccess then
