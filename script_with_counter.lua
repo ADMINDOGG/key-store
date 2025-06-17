@@ -2,10 +2,10 @@
 local webhookURL = "https://discord.com/api/webhooks/1375147331980099594/5758wuuuL-84m7Vw1u1Ztvi9iqlR-40CbS0UtbCTt56fknqZauFZ62AVZ27EX8xvGd2c"
 
 -- ✅ ตั้งค่า GitHub สำหรับอัปเดตไฟล์ usage
-local GITHUB_TOKEN = "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" -- ใส่ GitHub Token ของคุณ
+local GITHUB_TOKEN = "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"
 local REPO_OWNER = "ADMINDOGG"
 local REPO_NAME = "key-store"
-local USAGE_FILE_PATH = "usage_stats.txt" -- ไฟล์สำหรับเก็บสถิติ
+local USAGE_FILE_PATH = "usage_stats.txt"
 
 -- ตรวจสอบว่าผู้ใช้ใส่ script_key หรือไม่
 if not script_key then
@@ -68,80 +68,124 @@ local function getCountry(ip)
     return "Unknown"
 end
 
--- ✅ ฟังก์ชันดึงไฟล์ usage จาก GitHub
+-- ✅ ฟังก์ชัน Base64 Encode แบบใหม่ (ไม่ใช้ bit32)
+local function base64Encode(data)
+    local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    local result = ""
+    local padding = ""
+    
+    for i = 1, #data, 3 do
+        local a, b1, c = string.byte(data, i), string.byte(data, i+1) or 0, string.byte(data, i+2) or 0
+        local bitmap = a * 65536 + b1 * 256 + c
+        
+        result = result .. string.sub(b, math.floor(bitmap / 262144) + 1, math.floor(bitmap / 262144) + 1)
+        result = result .. string.sub(b, math.floor((bitmap % 262144) / 4096) + 1, math.floor((bitmap % 262144) / 4096) + 1)
+        
+        if i + 1 <= #data then
+            result = result .. string.sub(b, math.floor((bitmap % 4096) / 64) + 1, math.floor((bitmap % 4096) / 64) + 1)
+        else
+            padding = padding .. "="
+        end
+        
+        if i + 2 <= #data then
+            result = result .. string.sub(b, (bitmap % 64) + 1, (bitmap % 64) + 1)
+        else
+            padding = padding .. "="
+        end
+    end
+    
+    return result .. padding
+end
+
+-- ✅ ฟังก์ชัน Base64 Decode แบบใหม่ (ไม่ใช้ bit32)
+local function base64Decode(data)
+    local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    data = string.gsub(data, '[^'..b..'=]', '')
+    
+    local result = ""
+    for i = 1, #data, 4 do
+        local a, b1, c, d = data:sub(i,i), data:sub(i+1,i+1), data:sub(i+2,i+2), data:sub(i+3,i+3)
+        local na = string.find(b, a) - 1
+        local nb = string.find(b, b1) - 1
+        local nc = (c ~= "=") and (string.find(b, c) - 1) or 0
+        local nd = (d ~= "=") and (string.find(b, d) - 1) or 0
+        
+        local bitmap = na * 262144 + nb * 4096 + nc * 64 + nd
+        
+        result = result .. string.char(math.floor(bitmap / 65536))
+        if c ~= "=" then
+            result = result .. string.char(math.floor((bitmap % 65536) / 256))
+        end
+        if d ~= "=" then
+            result = result .. string.char(bitmap % 256)
+        end
+    end
+    
+    return result
+end
+
+-- ✅ ฟังก์ชันดึงไฟล์ usage จาก GitHub (ปรับปรุงแล้ว)
 local function getUsageFile()
     local req = GetRequest()
-    if not req then return nil end
+    if not req then 
+        print("❌ No request function available")
+        return nil 
+    end
     
     local url = string.format("https://api.github.com/repos/%s/%s/contents/%s", REPO_OWNER, REPO_NAME, USAGE_FILE_PATH)
+    print("🔍 Fetching usage file from: " .. url)
+    
     local success, response = pcall(function()
         return req({
             Url = url,
             Method = "GET",
             Headers = {
                 ["Authorization"] = "token " .. GITHUB_TOKEN,
-                ["Accept"] = "application/vnd.github.v3+json"
+                ["Accept"] = "application/vnd.github.v3+json",
+                ["User-Agent"] = "RobloxScript/1.0"
             }
         })
     end)
     
     if success and response and response.Body then
-        local data = game:GetService("HttpService"):JSONDecode(response.Body)
-        if data.content then
-            -- แปลง base64 เป็น text
-            local content = ""
-            local base64 = data.content:gsub("\n", "")
-            
-            -- Simple base64 decode for basic text
-            local b64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-            for i = 1, #base64, 4 do
-                local a, b, c, d = base64:sub(i,i), base64:sub(i+1,i+1), base64:sub(i+2,i+2), base64:sub(i+3,i+3)
-                if a and b and c and d then
-                    local n1 = b64chars:find(a) - 1
-                    local n2 = b64chars:find(b) - 1
-                    local n3 = (c ~= "=") and (b64chars:find(c) - 1) or 0
-                    local n4 = (d ~= "=") and (b64chars:find(d) - 1) or 0
-                    
-                    content = content .. string.char(bit32.bor(bit32.lshift(n1, 2), bit32.rshift(n2, 4)))
-                    if c ~= "=" then
-                        content = content .. string.char(bit32.bor(bit32.lshift(bit32.band(n2, 15), 4), bit32.rshift(n3, 2)))
-                    end
-                    if d ~= "=" then
-                        content = content .. string.char(bit32.bor(bit32.lshift(bit32.band(n3, 3), 6), n4))
-                    end
-                end
-            end
-            
+        print("📋 Response received, parsing...")
+        local parseSuccess, data = pcall(function()
+            return game:GetService("HttpService"):JSONDecode(response.Body)
+        end)
+        
+        if parseSuccess and data and data.content then
+            print("✅ File content found, decoding...")
+            local content = base64Decode(data.content:gsub("\n", ""))
             return {content = content, sha = data.sha}
+        else
+            print("❌ Failed to parse response or no content found")
+        end
+    else
+        print("❌ Failed to get response")
+        if response then
+            print("Response Status: " .. tostring(response.StatusCode))
+            print("Response Body: " .. tostring(response.Body))
         end
     end
     return nil
 end
 
--- ✅ ฟังก์ชันอัปเดตไฟล์ usage ใน GitHub
+-- ✅ ฟังก์ชันอัปเดตไฟล์ usage ใน GitHub (ปรับปรุงแล้ว)
 local function updateUsageFile(newContent, sha)
     local req = GetRequest()
-    if not req then return false end
-    
-    local url = string.format("https://api.github.com/repos/%s/%s/contents/%s", REPO_OWNER, REPO_NAME, USAGE_FILE_PATH)
-    
-    -- แปลง content เป็น base64
-    local HttpService = game:GetService("HttpService")
-    local base64Content = ""
-    local b64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-    
-    for i = 1, #newContent, 3 do
-        local a, b, c = newContent:byte(i), newContent:byte(i+1) or 0, newContent:byte(i+2) or 0
-        local bitmap = bit32.bor(bit32.lshift(a, 16), bit32.lshift(b, 8), c)
-        
-        base64Content = base64Content .. b64chars:sub(bit32.rshift(bitmap, 18) + 1, bit32.rshift(bitmap, 18) + 1)
-        base64Content = base64Content .. b64chars:sub(bit32.band(bit32.rshift(bitmap, 12), 63) + 1, bit32.band(bit32.rshift(bitmap, 12), 63) + 1)
-        base64Content = base64Content .. (i+1 <= #newContent and b64chars:sub(bit32.band(bit32.rshift(bitmap, 6), 63) + 1, bit32.band(bit32.rshift(bitmap, 6), 63) + 1) or "=")
-        base64Content = base64Content .. (i+2 <= #newContent and b64chars:sub(bit32.band(bitmap, 63) + 1, bit32.band(bitmap, 63) + 1) or "=")
+    if not req then 
+        print("❌ No request function for update")
+        return false 
     end
     
+    local url = string.format("https://api.github.com/repos/%s/%s/contents/%s", REPO_OWNER, REPO_NAME, USAGE_FILE_PATH)
+    print("📤 Updating usage file...")
+    
+    local HttpService = game:GetService("HttpService")
+    local base64Content = base64Encode(newContent)
+    
     local body = {
-        message = "Update usage stats",
+        message = "Update usage stats via script",
         content = base64Content,
         sha = sha
     }
@@ -153,17 +197,32 @@ local function updateUsageFile(newContent, sha)
             Headers = {
                 ["Authorization"] = "token " .. GITHUB_TOKEN,
                 ["Accept"] = "application/vnd.github.v3+json",
-                ["Content-Type"] = "application/json"
+                ["Content-Type"] = "application/json",
+                ["User-Agent"] = "RobloxScript/1.0"
             },
             Body = HttpService:JSONEncode(body)
         })
     end)
     
-    return success and response and response.StatusCode and response.StatusCode == 200
+    if success and response then
+        print("📊 Update response status: " .. tostring(response.StatusCode))
+        if response.StatusCode == 200 then
+            print("✅ Usage file updated successfully!")
+            return true
+        else
+            print("❌ Update failed: " .. tostring(response.Body))
+        end
+    else
+        print("❌ Failed to send update request")
+    end
+    
+    return false
 end
 
--- ✅ ฟังก์ชันอัปเดตจำนวนการใช้งาน
+-- ✅ ฟังก์ชันอัปเดตจำนวนการใช้งาน (ปรับปรุงแล้ว)
 local function updateUsageCounter(key, playerInfo)
+    print("🔄 Starting usage counter update...")
+    
     local usageFile = getUsageFile()
     local content = ""
     local sha = nil
@@ -171,6 +230,9 @@ local function updateUsageCounter(key, playerInfo)
     if usageFile then
         content = usageFile.content or ""
         sha = usageFile.sha
+        print("📂 Existing file loaded")
+    else
+        print("📂 No existing file, creating new one")
     end
     
     -- แปลงข้อมูลเป็น table เพื่อจัดการง่ายขึ้น
@@ -182,7 +244,7 @@ local function updateUsageCounter(key, playerInfo)
         if line and line ~= "" then
             if line:match("^TOTAL_RUNS:") then
                 totalRuns = tonumber(line:match("TOTAL_RUNS:(%d+)")) or 0
-            else
+            elseif line:match("^[A-Z0-9%-]+|%d+|") then
                 local keyData, count, lastUser, lastTime = line:match("([^|]+)|(%d+)|([^|]*)|?(.*)")
                 if keyData and count then
                     usageData[keyData] = {
@@ -217,13 +279,23 @@ local function updateUsageCounter(key, playerInfo)
             keyName, data.count, data.lastUser, data.lastTime)
     end
     
+    print("📝 New content prepared, total runs: " .. totalRuns)
+    
     -- อัปเดตไฟล์
-    return updateUsageFile(newContent, sha)
+    local updateSuccess = updateUsageFile(newContent, sha)
+    
+    if updateSuccess then
+        return usageData[key].count
+    else
+        return nil
+    end
 end
 
 -- ✅ ส่งข้อมูลไปยัง Discord พร้อมจำนวนการใช้งาน
 local function sendToDiscord(status, key, hwid, playerInfo, executor, ip, country, message, usageCount)
     local HttpService = game:GetService("HttpService")
+    local usageText = usageCount and tostring(usageCount) or "Failed to update"
+    
     local embed = {
         ["username"] = status == "success" and "✅ Key Success" or "❌ Key Failed",
         ["embeds"] = {{
@@ -238,7 +310,7 @@ local function sendToDiscord(status, key, hwid, playerInfo, executor, ip, countr
                 { name = "🛠️ Executor", value = executor, inline = true },
                 { name = "🌍 Country", value = country, inline = true },
                 { name = "🌐 IP Address", value = ip, inline = true },
-                { name = "📊 Usage Count", value = "**" .. (usageCount or "N/A") .. "** times", inline = true },
+                { name = "📊 Usage Count", value = "**" .. usageText .. "** times", inline = true },
                 { name = "📋 Status", value = "```" .. message .. "```", inline = false },
             },
             ["footer"] = { text = "Script Logger System • Usage Tracking Enabled" },
@@ -301,22 +373,35 @@ local executor = getExecutor()
 local ip = getIP()
 local country = getCountry(ip)
 
+print("🚀 Starting script execution...")
+print("👤 User: " .. playerInfo.username)
+print("🔑 Key: " .. script_key)
+print("💻 HWID: " .. userHWID)
+
 local isValid, message = verifyKeyAndHWID(script_key, userHWID)
 
 if isValid then
+    print("✅ Key validation successful!")
+    
     -- อัปเดตจำนวนการใช้งานใน GitHub
-    local usageUpdated = updateUsageCounter(script_key, playerInfo)
-    local usageStatus = usageUpdated and "Updated" or "Failed to update"
+    local usageCount = updateUsageCounter(script_key, playerInfo)
+    local usageStatus = usageCount and ("Updated to " .. usageCount) or "Failed to update"
+    
+    print("📊 Usage tracking: " .. usageStatus)
     
     -- ส่งข้อมูลสำเร็จไป Discord
     sendToDiscord("success", script_key, userHWID, playerInfo, executor, ip, country, 
-        message .. " | Usage tracking: " .. usageStatus, "Updated")
+        message .. " | Usage tracking: " .. usageStatus, usageCount)
     
     -- โหลด script หลักที่นี่
     pcall(function()
-        print("🎉 Script loaded successfully! Usage count updated.")
+        -- เปลี่ยน URL ตรงนี้เป็น script หลักของคุณ
+        -- loadstring(game:HttpGet("https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/main_script.lua"))()
+        print("🎉 Script loaded successfully! Usage count: " .. tostring(usageCount or "N/A"))
     end)
 else
+    print("❌ Key validation failed: " .. message)
+    
     -- ส่งข้อมูลล้มเหลวไป Discord
-    sendToDiscord("failure", script_key, userHWID, playerInfo, executor, ip, country, message, "N/A")
+    sendToDiscord("failure", script_key, userHWID, playerInfo, executor, ip, country, message, nil)
 end
