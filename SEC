@@ -1,0 +1,411 @@
+-- ✅ Enhanced Lua Script with Ban Check and Better Error Handling
+local webhookURL = "https://discord.com/api/webhooks/1375147331980099594/5758wuuuL-84m7Vw1u1Ztvi9iqlR-40CbS0UtbCTt56fknqZauFZ62AVZ27EX8xvGd2c"
+
+-- ตรวจสอบว่าผู้ใช้ใส่ script_key หรือไม่
+if not script_key then
+    print("❌ กรุณาใส่ script_key ก่อนรัน Script!")
+    return
+end
+
+-- ✅ ฟังก์ชันดึง Executor
+local function getExecutor()
+    if identifyexecutor then return identifyexecutor() end
+    if KRNL_LOADED then return "Krnl" end
+    if isexecutorclosure then return "Script-Ware" end
+    if fluxus then return "Fluxus" end
+    if SENTINEL_LOADED then return "Sentinel" end
+    if PROTOSMASHER_LOADED then return "ProtoSmasher" end
+    return "Unknown"
+end
+
+-- ✅ ฟังก์ชันดึง HWID
+local function getHWID()
+    if syn and syn.crypt and syn.crypt.hash then
+        return syn.crypt.hash("HWID_" .. tostring(game:GetService("RbxAnalyticsService"):GetClientId()))
+    elseif gethwid then
+        return gethwid()
+    elseif identifyexecutor and identifyexecutor():lower():find("fluxus") then
+        return "fluxus_" .. tostring(game:GetService("RbxAnalyticsService"):GetClientId())
+    else
+        return "fallback_" .. tostring(game:GetService("RbxAnalyticsService"):GetClientId())
+    end
+end
+
+-- ✅ ฟังก์ชันเลือก Request
+local function GetRequest()
+    if syn and syn.request then return syn.request end
+    if http and http.request then return http.request end
+    if http_request then return http_request end
+    if fluxus and fluxus.request then return fluxus.request end
+    if request then return request end
+    return nil
+end
+
+-- ✅ ดึง IP Address
+local function getIP()
+    local req = GetRequest()
+    if not req then return "Unknown" end
+    local success, res = pcall(function()
+        return req({ Url = "https://api.ipify.org", Method = "GET" })
+    end)
+    return success and res and res.Body or "Unknown"
+end
+
+-- ✅ ดึงประเทศจาก IP
+local function getCountry(ip)
+    local req = GetRequest()
+    if not req then return "Unknown" end
+    local success, res = pcall(function()
+        return req({ Url = "http://ip-api.com/json/" .. ip, Method = "GET" })
+    end)
+    if success and res and res.Body then
+        local data = game:GetService("HttpService"):JSONDecode(res.Body)
+        return data.country or "Unknown"
+    end
+    return "Unknown"
+end
+
+-- ✅ ตรวจสอบว่า Key ถูกแบนหรือไม่
+local function isKeyBanned(key)
+    local success, bannedData = pcall(function()
+        return game:HttpGet("https://raw.githubusercontent.com/ADMINDOGG/key-store/refs/heads/main/banned_keys.txt")
+    end)
+    
+    if not success then
+        return false -- ถ้าไม่สามารถเช็คได้ ให้ผ่าน
+    end
+    
+    for line in bannedData:gmatch("[^\r\n]+") do
+        if line and line ~= "" then
+            local bannedKey = line:match("([^:]+)")
+            if bannedKey and bannedKey:gsub("^%s*(.-)%s*$", "%1") == key then
+                local parts = {}
+                for part in line:gmatch("[^:]+") do
+                    table.insert(parts, part)
+                end
+                local reason = table.concat(parts, ":", 3) or "ไม่ระบุเหตุผล"
+                return true, reason
+            end
+        end
+    end
+    
+    return false
+end
+
+-- ✅ ฟังก์ชันอัปเดตจำนวนครั้งการรัน (ปรับปรุงแล้ว)
+local function updateRunCounter(key, userId)
+    local req = GetRequest()
+    if not req then 
+        print("⚠️ ไม่สามารถเชื่อมต่อ API ได้ - ข้ามการนับครั้ง")
+        return { count = 1, firstRun = os.date("!%Y-%m-%dT%H:%M:%SZ") } 
+    end
+    
+    local apiUrl = "https://api.github.com/repos/ADMINDOGG/key-store/contents/run_counter.txt"
+    local token = "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"
+    
+    local currentTime = os.date("!%Y-%m-%dT%H:%M:%SZ")
+    local runCount = 1
+    local firstRun = currentTime
+    
+    -- ดึงไฟล์ปัจจุบัน
+    local success, response = pcall(function()
+        return req({
+            Url = apiUrl,
+            Method = "GET",
+            Headers = {
+                ["Authorization"] = "token " .. token,
+                ["Accept"] = "application/vnd.github.v3+json"
+            }
+        })
+    end)
+    
+    if success and response and response.StatusCode == 200 then
+        local fileData = game:GetService("HttpService"):JSONDecode(response.Body)
+        local sha = fileData.sha
+        
+        -- แปลง base64 เป็น text
+        local content = ""
+        pcall(function()
+            content = game:GetService("Base64").decode(fileData.content:gsub("\n", ""))
+        end)
+        
+        local lines = {}
+        for line in content:gmatch("[^\r\n]+") do
+            table.insert(lines, line)
+        end
+        
+        local updated = false
+        for i, line in ipairs(lines) do
+            local parts = {}
+            for part in line:gmatch("[^:]+") do
+                table.insert(parts, part)
+            end
+            
+            if #parts >= 4 and parts[1] == key and parts[2] == userId then
+                updated = true
+                runCount = tonumber(parts[3]) + 1
+                firstRun = parts[4]
+                lines[i] = key .. ":" .. userId .. ":" .. runCount .. ":" .. firstRun .. ":" .. currentTime
+                break
+            end
+        end
+        
+        if not updated then
+            table.insert(lines, key .. ":" .. userId .. ":1:" .. currentTime .. ":" .. currentTime)
+        end
+        
+        -- อัปเดตไฟล์
+        local newContent = table.concat(lines, "\n")
+        local encodedContent = ""
+        pcall(function()
+            encodedContent = game:GetService("Base64").encode(newContent)
+        end)
+        
+        pcall(function()
+            req({
+                Url = apiUrl,
+                Method = "PUT",
+                Headers = {
+                    ["Authorization"] = "token " .. token,
+                    ["Accept"] = "application/vnd.github.v3+json",
+                    ["Content-Type"] = "application/json"
+                },
+                Body = game:GetService("HttpService"):JSONEncode({
+                    message = "Update run counter data",
+                    content = encodedContent,
+                    sha = sha
+                })
+            })
+        end)
+    else
+        -- สร้างไฟล์ใหม่
+        local newContent = key .. ":" .. userId .. ":1:" .. currentTime .. ":" .. currentTime
+        local encodedContent = ""
+        pcall(function()
+            encodedContent = game:GetService("Base64").encode(newContent)
+        end)
+        
+        pcall(function()
+            req({
+                Url = apiUrl,
+                Method = "PUT",
+                Headers = {
+                    ["Authorization"] = "token " .. token,
+                    ["Accept"] = "application/vnd.github.v3+json",
+                    ["Content-Type"] = "application/json"
+                },
+                Body = game:GetService("HttpService"):JSONEncode({
+                    message = "Create run counter file",
+                    content = encodedContent
+                })
+            })
+        end)
+    end
+    
+    return { count = runCount, firstRun = firstRun }
+end
+
+-- ✅ ส่งข้อมูลไปยัง Discord (อัปเดตแล้ว)
+local function sendToDiscord(status, key, hwid, playerInfo, executor, ip, country, message, keyOwnerDiscordId, runData)
+    local HttpService = game:GetService("HttpService")
+    
+    local fields = {
+        { name = "👤 Username", value = playerInfo.username, inline = true },
+        { name = "📛 Display Name", value = playerInfo.displayName, inline = true },
+        { name = "🆔 User ID", value = playerInfo.userId, inline = true },
+        { name = "🔑 Key Used", value = "```" .. key .. "```", inline = false },
+        { name = "💻 HWID", value = "```" .. hwid .. "```", inline = false },
+    }
+    
+    -- เพิ่ม Discord ID ของเจ้าของ Key
+    if keyOwnerDiscordId and keyOwnerDiscordId ~= "Unknown" then
+        table.insert(fields, { name = "👥 Discord ID", value = "<@" .. keyOwnerDiscordId .. ">", inline = true })
+    else
+        table.insert(fields, { name = "👥 Discord ID", value = "Unknown", inline = true })
+    end
+    
+    -- เพิ่มข้อมูลจำนวนครั้งการรัน
+    if runData and status == "success" then
+        table.insert(fields, { name = "📊 จำนวนครั้งการรัน", value = "```ครั้งที่ " .. runData.count .. "```", inline = true })
+        table.insert(fields, { name = "🎯 รันครั้งแรก", value = "```" .. runData.firstRun .. "```", inline = true })
+        
+        -- เพิ่มข้อความพิเศษสำหรับ milestone
+        if runData.count == 1 then
+            table.insert(fields, { name = "🎉 สถานะพิเศษ", value = "```🆕 ผู้ใช้ใหม่!```", inline = true })
+        elseif runData.count % 10 == 0 then
+            table.insert(fields, { name = "🎉 สถานะพิเศษ", value = "```🏆 " .. runData.count .. " ครั้ง!```", inline = true })
+        elseif runData.count % 100 == 0 then
+            table.insert(fields, { name = "🎉 สถานะพิเศษ", value = "```💎 " .. runData.count .. " ครั้ง - ผู้ใช้ระดับเทพ!```", inline = true })
+        end
+    end
+    
+    -- เพิ่ม field อื่น ๆ
+    table.insert(fields, { name = "🛠️ Executor", value = executor, inline = true })
+    table.insert(fields, { name = "🌍 Country", value = country, inline = true })
+    table.insert(fields, { name = "🌐 IP Address", value = ip, inline = true })
+    table.insert(fields, { name = "📋 Status", value = "```" .. message .. "```", inline = false })
+    
+    local embed = {
+        ["username"] = status == "success" and "✅ Key Success" or "❌ Key Failed",
+        ["embeds"] = {{
+            ["title"] = status == "success" and "✅ Script Executed Successfully" or "❌ Script Execution Failed",
+            ["color"] = status == "success" and 65280 or 16711680,
+            ["fields"] = fields,
+            ["footer"] = { text = "Script Logger System • " .. os.date("%Y-%m-%d %H:%M:%S") },
+            ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
+        }}
+    }
+    
+    pcall(function()
+        GetRequest()({
+            Url = webhookURL,
+            Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = HttpService:JSONEncode(embed)
+        })
+    end)
+end
+
+-- ✅ ฟังก์ชันตรวจสอบ Key และ HWID (ปรับปรุงแล้ว)
+local function verifyKeyAndHWID(inputKey, userHWID)
+    -- ตรวจสอบว่า Key ถูกแบนหรือไม่
+    local isBanned, banReason = isKeyBanned(inputKey)
+    if isBanned then
+        return false, "🚫 Key นี้ถูกแบน!\nเหตุผล: " .. (banReason or "ไม่ระบุเหตุผล"), nil
+    end
+    
+    local success, keysData = pcall(function()
+        return game:HttpGet("https://raw.githubusercontent.com/ADMINDOGG/key-store/refs/heads/main/keys.txt")
+    end)
+    
+    if not success then
+        return false, "🌐 ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้\nกรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต", nil
+    end
+    
+    for line in keysData:gmatch("[^\r\n]+") do
+        if line and line ~= "" then
+            local key, hwid, userid = line:match("([^:]+):([^:]+):?(.*)")
+            
+            if key and hwid then
+                key = key:gsub("^%s*(.-)%s*$", "%1")
+                hwid = hwid:gsub("^%s*(.-)%s*$", "%1")
+                userid = userid and userid:gsub("^%s*(.-)%s*$", "%1") or "Unknown"
+                
+                if key == inputKey then
+                    if hwid == userHWID then
+                        return true, "✅ Key และ HWID ถูกต้อง - กำลังโหลด Script...", userid
+                    else
+                        return false, "🔒 HWID ไม่ตรงกัน!\n📋 ลงทะเบียน: " .. hwid .. "\n💻 ปัจจุบัน: " .. userHWID .. "\n\n💡 ใช้คำสั่ง /setup เพื่อ Reset HWID", userid
+                    end
+                end
+            end
+        end
+    end
+    
+    return false, "❌ Key ไม่ถูกต้องหรือยังไม่ได้ลงทะเบียน\nกรุณาติดต่อ Staff เพื่อขอ Key", nil
+end
+
+-- ✅ ฟังก์ชันแสดงข้อความสวยงาม
+local function displayMessage(type, message)
+    local border = "=" .. string.rep("=", 50) .. "="
+    local spacer = "|" .. string.rep(" ", 50) .. "|"
+    
+    print(border)
+    print(spacer)
+    
+    if type == "success" then
+        print("| 🎉 SUCCESS: " .. string.rep(" ", 35) .. "|")
+    elseif type == "error" then
+        print("| ❌ ERROR: " .. string.rep(" ", 37) .. "|")
+    elseif type == "loading" then
+        print("| ⏳ LOADING: " .. string.rep(" ", 35) .. "|")
+    end
+    
+    print(spacer)
+    
+    -- แยกข้อความเป็นบรรทัด
+    for line in message:gmatch("[^\n]+") do
+        local padding = 50 - #line
+        local leftPad = math.floor(padding / 2)
+        local rightPad = padding - leftPad
+        print("| " .. string.rep(" ", leftPad) .. line .. string.rep(" ", rightPad) .. "|")
+    end
+    
+    print(spacer)
+    print(border)
+end
+
+-- ✅ ฟังก์ชันโหลด Script หลัก
+local function loadMainScript()
+    print("\n🔄 กำลังโหลด Script หลัก...")
+    
+    -- ใส่ URL Script หลักของคุณที่นี่
+    local mainScriptUrl = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/main_script.lua"
+    
+    local success, result = pcall(function()
+        return loadstring(game:HttpGet(mainScriptUrl))()
+    end)
+    
+    if success then
+        print("✅ โหลด Script หลักสำเร็จ!")
+        return true
+    else
+        print("❌ ไม่สามารถโหลด Script หลักได้: " .. tostring(result))
+        return false
+    end
+end
+
+-- ✅ เริ่มต้นการทำงาน
+print("\n🚀 เริ่มต้นการตรวจสอบ...")
+
+local player = game:GetService("Players").LocalPlayer
+local playerInfo = {
+    username = player.Name,
+    displayName = player.DisplayName,
+    userId = tostring(player.UserId)
+}
+
+local userHWID = getHWID()
+local executor = getExecutor()
+local ip = getIP()
+local country = getCountry(ip)
+
+print("👤 ผู้เล่น: " .. playerInfo.username)
+print("🆔 User ID: " .. playerInfo.userId)
+print("💻 HWID: " .. userHWID)
+print("🛠️ Executor: " .. executor)
+print("🌍 ประเทศ: " .. country)
+print("🔑 Key: " .. script_key)
+print("\n⏳ กำลังตรวจสอบ Key และ HWID...")
+
+local isValid, message, keyOwnerDiscordId = verifyKeyAndHWID(script_key, userHWID)
+
+if isValid then
+    displayMessage("success", "Key ผ่านการตรวจสอบ!")
+    
+    -- อัปเดตจำนวนครั้งการรันก่อน
+    print("\n📊 กำลังอัปเดตจำนวนครั้งการรัน...")
+    local runData = updateRunCounter(script_key, keyOwnerDiscordId)
+    
+    print("🎯 นี่คือการรันครั้งที่: " .. runData.count)
+    
+    -- ส่งข้อมูลสำเร็จไป Discord
+    sendToDiscord("success", script_key, userHWID, playerInfo, executor, ip, country, message, keyOwnerDiscordId, runData)
+    
+    -- โหลด Script หลัก
+    local mainLoaded = loadMainScript()
+    
+    if mainLoaded then
+        displayMessage("success", "🎊 ทุกอย่างพร้อมแล้ว!\nScript กำลังทำงาน...")
+    else
+        displayMessage("error", "⚠️ Script หลักไม่สามารถโหลดได้\nแต่ Key ของคุณถูกต้อง")
+    end
+else
+    displayMessage("error", message)
+    
+    -- ส่งข้อมูลล้มเหลวไป Discord
+    sendToDiscord("failure", script_key, userHWID, playerInfo, executor, ip, country, message, keyOwnerDiscordId, nil)
+end
+
+-- ✅ ทำความสะอาดตัวแปร
+script_key = nil
