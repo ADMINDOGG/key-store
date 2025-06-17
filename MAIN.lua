@@ -63,24 +63,37 @@ local function getCountry(ip)
 end
 
 -- ✅ ส่งข้อมูลไปยัง Discord
-local function sendToDiscord(status, key, hwid, playerInfo, executor, ip, country, message)
+local function sendToDiscord(status, key, hwid, playerInfo, executor, ip, country, message, keyOwnerDiscordId)
     local HttpService = game:GetService("HttpService")
+    
+    -- สร้าง field สำหรับ Discord ID ของเจ้าของ Key
+    local fields = {
+        { name = "👤 Username", value = playerInfo.username, inline = true },
+        { name = "📛 Display Name", value = playerInfo.displayName, inline = true },
+        { name = "🆔 User ID", value = playerInfo.userId, inline = true },
+        { name = "🔑 Key Used", value = "```" .. key .. "```", inline = false },
+        { name = "💻 HWID", value = "```" .. hwid .. "```", inline = false },
+    }
+    
+    -- เพิ่ม Discord ID ของเจ้าของ Key
+    if keyOwnerDiscordId and keyOwnerDiscordId ~= "Unknown" then
+        table.insert(fields, { name = "👑 Key Owner", value = "<@" .. keyOwnerDiscordId .. ">", inline = true })
+    else
+        table.insert(fields, { name = "👑 Key Owner", value = "Unknown", inline = true })
+    end
+    
+    -- เพิ่ม field อื่น ๆ
+    table.insert(fields, { name = "🛠️ Executor", value = executor, inline = true })
+    table.insert(fields, { name = "🌍 Country", value = country, inline = true })
+    table.insert(fields, { name = "🌐 IP Address", value = ip, inline = true })
+    table.insert(fields, { name = "📋 Status", value = "```" .. message .. "```", inline = false })
+    
     local embed = {
         ["username"] = status == "success" and "✅ Key Success" or "❌ Key Failed",
         ["embeds"] = {{
             ["title"] = status == "success" and "✅ Script Executed Successfully" or "❌ Script Execution Failed",
             ["color"] = status == "success" and 65280 or 16711680,
-            ["fields"] = {
-                { name = "👤 Username", value = playerInfo.username, inline = true },
-                { name = "📛 Display Name", value = playerInfo.displayName, inline = true },
-                { name = "🆔 User ID", value = playerInfo.userId, inline = true },
-                { name = "🔑 Key Used", value = "```" .. key .. "```", inline = false },
-                { name = "💻 HWID", value = "```" .. hwid .. "```", inline = false },
-                { name = "🛠️ Executor", value = executor, inline = true },
-                { name = "🌍 Country", value = country, inline = true },
-                { name = "🌐 IP Address", value = ip, inline = true },
-                { name = "📋 Status", value = "```" .. message .. "```", inline = false },
-            },
+            ["fields"] = fields,
             ["footer"] = { text = "Script Logger System" },
             ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
         }}
@@ -103,7 +116,7 @@ local function verifyKeyAndHWID(inputKey, userHWID)
     end)
     
     if not success then
-        return false, "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้"
+        return false, "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้", nil
     end
     
     for line in keysData:gmatch("[^\r\n]+") do
@@ -113,19 +126,20 @@ local function verifyKeyAndHWID(inputKey, userHWID)
             if key and hwid then
                 key = key:gsub("^%s*(.-)%s*$", "%1")
                 hwid = hwid:gsub("^%s*(.-)%s*$", "%1")
+                userid = userid and userid:gsub("^%s*(.-)%s*$", "%1") or "Unknown"
                 
                 if key == inputKey then
                     if hwid == userHWID then
-                        return true, "Key และ HWID ถูกต้อง"
+                        return true, "Key และ HWID ถูกต้อง", userid
                     else
-                        return false, "HWID ไม่ตรงกัน - ลงทะเบียน: " .. hwid .. " | ปัจจุบัน: " .. userHWID
+                        return false, "HWID ไม่ตรงกัน - ลงทะเบียน: " .. hwid .. " | ปัจจุบัน: " .. userHWID, userid
                     end
                 end
             end
         end
     end
     
-    return false, "Key ไม่ถูกต้องหรือยังไม่ได้ลงทะเบียน"
+    return false, "Key ไม่ถูกต้องหรือยังไม่ได้ลงทะเบียน", nil
 end
 
 -- เริ่มต้นการตรวจสอบ
@@ -141,11 +155,11 @@ local executor = getExecutor()
 local ip = getIP()
 local country = getCountry(ip)
 
-local isValid, message = verifyKeyAndHWID(script_key, userHWID)
+local isValid, message, keyOwnerDiscordId = verifyKeyAndHWID(script_key, userHWID)
 
 if isValid then
     -- ส่งข้อมูลสำเร็จไป Discord
-    sendToDiscord("success", script_key, userHWID, playerInfo, executor, ip, country, message)
+    sendToDiscord("success", script_key, userHWID, playerInfo, executor, ip, country, message, keyOwnerDiscordId)
     
     -- โหลด script หลักที่นี่
     pcall(function()
@@ -154,5 +168,5 @@ if isValid then
     end)
 else
     -- ส่งข้อมูลล้มเหลวไป Discord
-    sendToDiscord("failure", script_key, userHWID, playerInfo, executor, ip, country, message)
+    sendToDiscord("failure", script_key, userHWID, playerInfo, executor, ip, country, message, keyOwnerDiscordId)
 end
