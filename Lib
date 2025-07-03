@@ -1,1285 +1,462 @@
-
--- Advanced Combat GUI Library with Full Features
--- ระบบ Aimbot, ESP, Speed Hack และอื่นๆ ครบถ้วน
-
+-- Roblox GUI Library
 local Library = {}
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
+Library.__index = Library
+
+-- Services
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local Camera = Workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
--- Global Variables
-local Mouse = LocalPlayer:GetMouse()
-local AimbotEnabled = false
-local ESPEnabled = false
-local SpeedEnabled = false
-local NoClipEnabled = false
-local InfiniteJumpEnabled = false
-local connections = {}
-local espObjects = {}
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
--- Theme Colors
-local Theme = {
-    Background = Color3.fromRGB(13, 13, 13),
-    Secondary = Color3.fromRGB(20, 20, 20),
-    Tertiary = Color3.fromRGB(25, 25, 25),
-    Accent = Color3.fromRGB(0, 255, 155),
-    AccentDark = Color3.fromRGB(0, 200, 120),
-    Text = Color3.fromRGB(255, 255, 255),
-    TextDark = Color3.fromRGB(180, 180, 180),
-    TextRed = Color3.fromRGB(255, 100, 100),
-    Border = Color3.fromRGB(40, 40, 40),
-    BorderLight = Color3.fromRGB(60, 60, 60),
-    Hover = Color3.fromRGB(35, 35, 35),
-    Red = Color3.fromRGB(255, 85, 85),
-    Orange = Color3.fromRGB(255, 165, 0)
-}
-
--- Aimbot Settings
-local AimbotSettings = {
-    Enabled = false,
-    FOV = 90,
-    Smoothness = 0.5,
-    TargetPart = "Head",
-    VisibilityCheck = true,
-    TeamCheck = true,
-    ShowFOV = true
-}
-
--- ESP Settings
-local ESPSettings = {
-    Enabled = false,
-    ShowBox = true,
-    ShowName = true,
-    ShowDistance = true,
-    ShowHealth = true,
-    BoxColor = Color3.fromRGB(0, 255, 155),
-    NameColor = Color3.fromRGB(255, 255, 255),
-    DistanceColor = Color3.fromRGB(255, 255, 0),
-    HealthColor = Color3.fromRGB(0, 255, 0)
-}
-
--- Player Settings
-local PlayerSettings = {
-    WalkSpeed = 16,
-    JumpPower = 50,
-    FOV = 70,
-    HipHeight = 0
-}
-
--- FOV Circle
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 2
-FOVCircle.Color = Theme.Accent
-FOVCircle.Filled = false
-FOVCircle.Transparency = 0.5
-FOVCircle.Visible = false
-FOVCircle.NumSides = 60
-
--- Utility Functions
-local function Tween(obj, properties, duration, style, direction)
-    local tween = TweenService:Create(obj, TweenInfo.new(
-        duration or 0.2,
-        style or Enum.EasingStyle.Quad,
-        direction or Enum.EasingDirection.Out
-    ), properties)
-    tween:Play()
-    return tween
-end
-
-local function CreateCorner(parent, radius)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius or 6)
-    corner.Parent = parent
-    return corner
-end
-
-local function CreateStroke(parent, color, thickness)
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = color or Theme.Border
-    stroke.Thickness = thickness or 1
-    stroke.Parent = parent
-    return stroke
-end
-
--- ESP Functions
-local function CreateESP(player)
-    if player == LocalPlayer then return end
-    
-    local esp = {}
-    
-    -- Box
-    esp.Box = Drawing.new("Square")
-    esp.Box.Visible = false
-    esp.Box.Color = ESPSettings.BoxColor
-    esp.Box.Thickness = 2
-    esp.Box.Transparency = 1
-    esp.Box.Filled = false
-    
-    -- Name
-    esp.Name = Drawing.new("Text")
-    esp.Name.Visible = false
-    esp.Name.Color = ESPSettings.NameColor
-    esp.Name.Text = player.Name
-    esp.Name.Size = 18
-    esp.Name.Center = true
-    esp.Name.Outline = true
-    esp.Name.OutlineColor = Color3.fromRGB(0, 0, 0)
-    esp.Name.Font = Drawing.Fonts.Plex
-    
-    -- Distance
-    esp.Distance = Drawing.new("Text")
-    esp.Distance.Visible = false
-    esp.Distance.Color = ESPSettings.DistanceColor
-    esp.Distance.Size = 16
-    esp.Distance.Center = true
-    esp.Distance.Outline = true
-    esp.Distance.OutlineColor = Color3.fromRGB(0, 0, 0)
-    esp.Distance.Font = Drawing.Fonts.Plex
-    
-    -- Health
-    esp.Health = Drawing.new("Text")
-    esp.Health.Visible = false
-    esp.Health.Color = ESPSettings.HealthColor
-    esp.Health.Size = 16
-    esp.Health.Center = true
-    esp.Health.Outline = true
-    esp.Health.OutlineColor = Color3.fromRGB(0, 0, 0)
-    esp.Health.Font = Drawing.Fonts.Plex
-    
-    -- Health Bar
-    esp.HealthBar = Drawing.new("Square")
-    esp.HealthBar.Visible = false
-    esp.HealthBar.Color = Color3.fromRGB(0, 255, 0)
-    esp.HealthBar.Thickness = 1
-    esp.HealthBar.Transparency = 1
-    esp.HealthBar.Filled = true
-    
-    esp.HealthBarBG = Drawing.new("Square")
-    esp.HealthBarBG.Visible = false
-    esp.HealthBarBG.Color = Color3.fromRGB(255, 0, 0)
-    esp.HealthBarBG.Thickness = 1
-    esp.HealthBarBG.Transparency = 1
-    esp.HealthBarBG.Filled = true
-    
-    espObjects[player] = esp
-end
-
-local function UpdateESP()
-    if not ESPSettings.Enabled then return end
-    
-    for player, esp in pairs(espObjects) do
-        if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
-            local character = player.Character
-            local humanoidRootPart = character.HumanoidRootPart
-            local humanoid = character.Humanoid
-            
-            local vector, onScreen = Camera:WorldToViewportPoint(humanoidRootPart.Position)
-            
-            if onScreen then
-                local head = character:FindFirstChild("Head")
-                if head then
-                    local headVector = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
-                    local legVector = Camera:WorldToViewportPoint(humanoidRootPart.Position - Vector3.new(0, 3, 0))
-                    
-                    local distance = (Camera.CFrame.Position - humanoidRootPart.Position).Magnitude
-                    local boxSize = (Camera.CFrame.Position - humanoidRootPart.Position).Magnitude
-                    local boxWidth = 1000 / boxSize
-                    local boxHeight = 1400 / boxSize
-                    
-                    -- Update Box
-                    if ESPSettings.ShowBox then
-                        esp.Box.Size = Vector2.new(boxWidth, boxHeight)
-                        esp.Box.Position = Vector2.new(vector.X - boxWidth/2, vector.Y - boxHeight/2)
-                        esp.Box.Visible = true
-                    else
-                        esp.Box.Visible = false
-                    end
-                    
-                    -- Update Name
-                    if ESPSettings.ShowName then
-                        esp.Name.Position = Vector2.new(vector.X, headVector.Y - 30)
-                        esp.Name.Visible = true
-                    else
-                        esp.Name.Visible = false
-                    end
-                    
-                    -- Update Distance
-                    if ESPSettings.ShowDistance then
-                        esp.Distance.Text = math.floor(distance) .. "m"
-                        esp.Distance.Position = Vector2.new(vector.X, legVector.Y + 20)
-                        esp.Distance.Visible = true
-                    else
-                        esp.Distance.Visible = false
-                    end
-                    
-                    -- Update Health
-                    if ESPSettings.ShowHealth then
-                        local health = math.floor(humanoid.Health)
-                        local maxHealth = math.floor(humanoid.MaxHealth)
-                        esp.Health.Text = health .. "/" .. maxHealth
-                        esp.Health.Position = Vector2.new(vector.X, legVector.Y + 40)
-                        esp.Health.Visible = true
-                        
-                        -- Health Bar
-                        local healthPercent = health / maxHealth
-                        esp.HealthBarBG.Size = Vector2.new(boxWidth, 4)
-                        esp.HealthBarBG.Position = Vector2.new(vector.X - boxWidth/2, legVector.Y + 5)
-                        esp.HealthBarBG.Visible = true
-                        
-                        esp.HealthBar.Size = Vector2.new(boxWidth * healthPercent, 4)
-                        esp.HealthBar.Position = Vector2.new(vector.X - boxWidth/2, legVector.Y + 5)
-                        esp.HealthBar.Visible = true
-                    else
-                        esp.Health.Visible = false
-                        esp.HealthBar.Visible = false
-                        esp.HealthBarBG.Visible = false
-                    end
-                else
-                    -- Hide ESP if no head
-                    for _, obj in pairs(esp) do
-                        if typeof(obj) == "userdata" then
-                            obj.Visible = false
-                        end
-                    end
-                end
-            else
-                -- Hide ESP if not on screen
-                for _, obj in pairs(esp) do
-                    if typeof(obj) == "userdata" then
-                        obj.Visible = false
-                    end
-                end
-            end
-        else
-            -- Hide ESP if no character
-            for _, obj in pairs(esp) do
-                if typeof(obj) == "userdata" then
-                    obj.Visible = false
-                end
-            end
-        end
-    end
-end
-
-local function RemoveESP(player)
-    if espObjects[player] then
-        for _, obj in pairs(espObjects[player]) do
-            if typeof(obj) == "userdata" then
-                obj:Remove()
-            end
-        end
-        espObjects[player] = nil
-    end
-end
-
--- Aimbot Functions
-local function GetClosestPlayer()
-    local closestPlayer = nil
-    local closestDistance = math.huge
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(AimbotSettings.TargetPart) then
-            -- Team check
-            if AimbotSettings.TeamCheck and player.Team == LocalPlayer.Team then
-                continue
-            end
-            
-            local character = player.Character
-            local targetPart = character[AimbotSettings.TargetPart]
-            
-            -- Visibility check
-            if AimbotSettings.VisibilityCheck then
-                local ray = Workspace:Raycast(Camera.CFrame.Position, (targetPart.Position - Camera.CFrame.Position).Unit * (targetPart.Position - Camera.CFrame.Position).Magnitude)
-                if ray and ray.Instance.Parent ~= character then
-                    continue
-                end
-            end
-            
-            local screenPoint, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
-            if onScreen then
-                local distance = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(screenPoint.X, screenPoint.Y)).Magnitude
-                if distance < AimbotSettings.FOV and distance < closestDistance then
-                    closestPlayer = player
-                    closestDistance = distance
-                end
-            end
-        end
-    end
-    
-    return closestPlayer
-end
-
-local function AimAt(player)
-    if player and player.Character and player.Character:FindFirstChild(AimbotSettings.TargetPart) then
-        local targetPart = player.Character[AimbotSettings.TargetPart]
-        local targetPosition = targetPart.Position
-        
-        local camera = Camera
-        local currentCFrame = camera.CFrame
-        local targetCFrame = CFrame.lookAt(currentCFrame.Position, targetPosition)
-        
-        -- Smooth aiming
-        camera.CFrame = currentCFrame:Lerp(targetCFrame, AimbotSettings.Smoothness)
-    end
-end
-
--- Player Modification Functions
-local function SetWalkSpeed(speed)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = speed
-        PlayerSettings.WalkSpeed = speed
-    end
-end
-
-local function SetJumpPower(power)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.JumpPower = power
-        PlayerSettings.JumpPower = power
-    end
-end
-
-local function SetFOV(fov)
-    Camera.FieldOfView = fov
-    PlayerSettings.FOV = fov
-end
-
-local function SetHipHeight(height)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.HipHeight = height
-        PlayerSettings.HipHeight = height
-    end
-end
-
-local function ToggleNoClip(enabled)
-    NoClipEnabled = enabled
-    if enabled then
-        connections.NoClip = RunService.Stepped:Connect(function()
-            if LocalPlayer.Character then
-                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                    if part:IsA("BasePart") and part.CanCollide then
-                        part.CanCollide = false
-                    end
-                end
-            end
-        end)
-    else
-        if connections.NoClip then
-            connections.NoClip:Disconnect()
-            connections.NoClip = nil
-        end
-        if LocalPlayer.Character then
-            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
-                end
-            end
-        end
-    end
-end
-
-local function ToggleInfiniteJump(enabled)
-    InfiniteJumpEnabled = enabled
-    if enabled then
-        connections.InfiniteJump = UserInputService.JumpRequest:Connect(function()
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-        end)
-    else
-        if connections.InfiniteJump then
-            connections.InfiniteJump:Disconnect()
-            connections.InfiniteJump = nil
-        end
-    end
-end
-
--- Main Loop
-local function StartMainLoop()
-    connections.MainLoop = RunService.Heartbeat:Connect(function()
-        -- Update FOV Circle
-        if AimbotSettings.ShowFOV then
-            FOVCircle.Position = Vector2.new(Mouse.X, Mouse.Y)
-            FOVCircle.Radius = AimbotSettings.FOV
-            FOVCircle.Visible = AimbotSettings.Enabled
-        else
-            FOVCircle.Visible = false
-        end
-        
-        -- Aimbot
-        if AimbotSettings.Enabled then
-            local target = GetClosestPlayer()
-            if target then
-                AimAt(target)
-            end
-        end
-        
-        -- Update ESP
-        UpdateESP()
-        
-        -- Auto-maintain player settings
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            local humanoid = LocalPlayer.Character.Humanoid
-            if humanoid.WalkSpeed ~= PlayerSettings.WalkSpeed then
-                humanoid.WalkSpeed = PlayerSettings.WalkSpeed
-            end
-            if humanoid.JumpPower ~= PlayerSettings.JumpPower then
-                humanoid.JumpPower = PlayerSettings.JumpPower
-            end
-            if humanoid.HipHeight ~= PlayerSettings.HipHeight then
-                humanoid.HipHeight = PlayerSettings.HipHeight
-            end
-        end
-        
-        if Camera.FieldOfView ~= PlayerSettings.FOV then
-            Camera.FieldOfView = PlayerSettings.FOV
-        end
-    end)
-end
-
--- Player Events
-Players.PlayerAdded:Connect(function(player)
-    CreateESP(player)
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-    RemoveESP(player)
-end)
-
--- Initialize ESP for existing players
-for _, player in pairs(Players:GetPlayers()) do
-    CreateESP(player)
-end
-
--- Start main loop
-StartMainLoop()
-
--- GUI Creation
+-- Library Functions
 function Library:CreateWindow(config)
-    local window = {}
+    config = config or {}
+    local window = {
+        Title = config.Title or "Game Menu",
+        Size = config.Size or {600, 400},
+        Position = config.Position or {0.5, 0.5},
+        ToggleKey = config.ToggleKey or Enum.KeyCode.Insert,
+        Tabs = {},
+        Elements = {},
+        Callbacks = {}
+    }
     
-    -- Create Screen GUI
+    -- Create ScreenGui
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "CombatLibrary"
-    screenGui.Parent = CoreGui
+    screenGui.Name = "LibraryGUI_" .. math.random(1000, 9999)
+    screenGui.Parent = playerGui
     screenGui.ResetOnSpawn = false
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     
     -- Main Frame
-    local main = Instance.new("Frame")
-    main.Name = "MainFrame"
-    main.BackgroundColor3 = Theme.Background
-    main.Size = UDim2.new(0, 800, 0, 500)
-    main.Position = UDim2.new(0.5, -400, 0.5, -250)
-    main.BorderSizePixel = 0
-    main.Parent = screenGui
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, window.Size[1], 0, window.Size[2])
+    mainFrame.Position = UDim2.new(window.Position[1], -window.Size[1]/2, window.Position[2], -window.Size[2]/2)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    mainFrame.Parent = screenGui
     
-    CreateCorner(main, 8)
-    CreateStroke(main, Theme.BorderLight, 1)
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 8)
+    mainCorner.Parent = mainFrame
     
-    -- Left Panel (Icon Sidebar)
-    local leftPanel = Instance.new("Frame")
-    leftPanel.Name = "LeftPanel"
-    leftPanel.BackgroundColor3 = Theme.Secondary
-    leftPanel.Size = UDim2.new(0, 50, 1, 0)
-    leftPanel.Position = UDim2.new(0, 0, 0, 0)
-    leftPanel.BorderSizePixel = 0
-    leftPanel.Parent = main
+    -- Title Bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 30)
+    titleBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = mainFrame
     
-    CreateCorner(leftPanel, 8)
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = titleBar
     
-    -- Tab Panel
-    local tabPanel = Instance.new("Frame")
-    tabPanel.Name = "TabPanel"
-    tabPanel.BackgroundColor3 = Theme.Secondary
-    tabPanel.Size = UDim2.new(0, 200, 1, 0)
-    tabPanel.Position = UDim2.new(0, 50, 0, 0)
-    tabPanel.BorderSizePixel = 0
-    tabPanel.Parent = main
+    local titleText = Instance.new("TextLabel")
+    titleText.Size = UDim2.new(1, -60, 1, 0)
+    titleText.Position = UDim2.new(0, 10, 0, 0)
+    titleText.BackgroundTransparency = 1
+    titleText.Text = window.Title
+    titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleText.TextSize = 14
+    titleText.Font = Enum.Font.GothamBold
+    titleText.TextXAlignment = Enum.TextXAlignment.Left
+    titleText.Parent = titleBar
     
-    -- Content Panel
-    local contentPanel = Instance.new("Frame")
-    contentPanel.Name = "ContentPanel"
-    contentPanel.BackgroundColor3 = Theme.Background
-    contentPanel.Size = UDim2.new(1, -250, 1, 0)
-    contentPanel.Position = UDim2.new(0, 250, 0, 0)
-    contentPanel.BorderSizePixel = 0
-    contentPanel.Parent = main
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 25, 0, 25)
+    closeButton.Position = UDim2.new(1, -30, 0, 2.5)
+    closeButton.BackgroundColor3 = Color3.fromRGB(255, 65, 65)
+    closeButton.BorderSizePixel = 0
+    closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.TextSize = 12
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.Parent = titleBar
     
-    -- Icon Container
-    local iconContainer = Instance.new("Frame")
-    iconContainer.Name = "IconContainer"
-    iconContainer.BackgroundTransparency = 1
-    iconContainer.Size = UDim2.new(1, 0, 1, -20)
-    iconContainer.Position = UDim2.new(0, 0, 0, 10)
-    iconContainer.Parent = leftPanel
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeButton
     
-    local iconLayout = Instance.new("UIListLayout")
-    iconLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    iconLayout.Padding = UDim.new(0, 5)
-    iconLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    iconLayout.Parent = iconContainer
+    -- Tab Frame
+    local tabFrame = Instance.new("Frame")
+    tabFrame.Size = UDim2.new(0, 120, 1, -35)
+    tabFrame.Position = UDim2.new(0, 5, 0, 35)
+    tabFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    tabFrame.BorderSizePixel = 0
+    tabFrame.Parent = mainFrame
     
-    -- Tab Content
-    local tabContent = Instance.new("Frame")
-    tabContent.Name = "TabContent"
-    tabContent.BackgroundTransparency = 1
-    tabContent.Size = UDim2.new(1, -20, 1, -20)
-    tabContent.Position = UDim2.new(0, 10, 0, 10)
-    tabContent.Parent = tabPanel
+    local tabCorner = Instance.new("UICorner")
+    tabCorner.CornerRadius = UDim.new(0, 6)
+    tabCorner.Parent = tabFrame
     
-    -- Main Content
-    local mainContent = Instance.new("ScrollingFrame")
-    mainContent.Name = "MainContent"
-    mainContent.BackgroundTransparency = 1
-    mainContent.Size = UDim2.new(1, -20, 1, -20)
-    mainContent.Position = UDim2.new(0, 10, 0, 10)
-    mainContent.CanvasSize = UDim2.new(0, 0, 0, 0)
-    mainContent.ScrollBarThickness = 4
-    mainContent.ScrollBarImageColor3 = Theme.Accent
-    mainContent.Parent = contentPanel
+    local tabLayout = Instance.new("UIListLayout")
+    tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    tabLayout.Padding = UDim.new(0, 5)
+    tabLayout.Parent = tabFrame
     
-    local contentLayout = Instance.new("UIListLayout")
-    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    contentLayout.Padding = UDim.new(0, 8)
-    contentLayout.Parent = mainContent
+    local tabPadding = Instance.new("UIPadding")
+    tabPadding.PaddingTop = UDim.new(0, 10)
+    tabPadding.PaddingLeft = UDim.new(0, 10)
+    tabPadding.PaddingRight = UDim.new(0, 10)
+    tabPadding.Parent = tabFrame
     
-    -- Variables
-    local tabs = {}
-    local currentTab = nil
-    local elements = {}
+    -- Content Frame
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Size = UDim2.new(1, -135, 1, -35)
+    contentFrame.Position = UDim2.new(0, 130, 0, 35)
+    contentFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    contentFrame.BorderSizePixel = 0
+    contentFrame.Parent = mainFrame
     
-    -- Dragging
-    local dragging = false
-    local dragStart = nil
-    local startPos = nil
+    local contentCorner = Instance.new("UICorner")
+    contentCorner.CornerRadius = UDim.new(0, 6)
+    contentCorner.Parent = contentFrame
     
-    main.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = main.Position
+    -- Store references
+    window.ScreenGui = screenGui
+    window.MainFrame = mainFrame
+    window.TabFrame = tabFrame
+    window.ContentFrame = contentFrame
+    window.CurrentTab = nil
+    
+    -- Close functionality
+    closeButton.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+    end)
+    
+    -- Toggle functionality
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.KeyCode == window.ToggleKey then
+            screenGui.Enabled = not screenGui.Enabled
         end
     end)
     
-    UserInputService.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
-            local delta = input.Position - dragStart
-            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-    
-    -- Update canvas size
-    local function updateCanvasSize()
-        local totalHeight = 0
-        for _, child in pairs(mainContent:GetChildren()) do
-            if child:IsA("GuiObject") then
-                totalHeight = totalHeight + child.Size.Y.Offset + 8
-            end
-        end
-        mainContent.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
-    end
-    
-    -- Create Tab Function
+    -- Window methods
     function window:CreateTab(config)
-        local tab = {}
-        local tabName = config.Name or "Tab"
-        local tabIcon = config.Icon or "⚙️"
+        config = config or {}
+        local tab = {
+            Name = config.Name or "Tab",
+            Icon = config.Icon or nil,
+            Elements = {},
+            Window = self
+        }
         
-        -- Create tab icon
-        local iconButton = Instance.new("TextButton")
-        iconButton.Name = tabName .. "Icon"
-        iconButton.BackgroundColor3 = Theme.Tertiary
-        iconButton.Size = UDim2.new(0, 35, 0, 35)
-        iconButton.Text = tabIcon
-        iconButton.TextColor3 = Theme.TextDark
-        iconButton.TextSize = 16
-        iconButton.Font = Enum.Font.SourceSans
-        iconButton.Parent = iconContainer
+        local tabButton = Instance.new("TextButton")
+        tabButton.Name = tab.Name .. "Tab"
+        tabButton.Size = UDim2.new(1, 0, 0, 30)
+        tabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        tabButton.BorderSizePixel = 0
+        tabButton.Text = tab.Name
+        tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        tabButton.TextSize = 12
+        tabButton.Font = Enum.Font.Gotham
+        tabButton.LayoutOrder = #self.Tabs + 1
+        tabButton.Parent = self.TabFrame
         
-        CreateCorner(iconButton, 6)
-        CreateStroke(iconButton, Theme.Border)
+        local tabCorner = Instance.new("UICorner")
+        tabCorner.CornerRadius = UDim.new(0, 4)
+        tabCorner.Parent = tabButton
         
-        -- Create tab label
-        local tabLabel = Instance.new("Frame")
-        tabLabel.Name = tabName .. "Label"
-        tabLabel.BackgroundTransparency = 1
-        tabLabel.Size = UDim2.new(1, 0, 0, 30)
-        tabLabel.Visible = false
-        tabLabel.Parent = tabContent
+        -- Content scroll for this tab
+        local contentScroll = Instance.new("ScrollingFrame")
+        contentScroll.Name = tab.Name .. "Content"
+        contentScroll.Size = UDim2.new(1, -20, 1, -20)
+        contentScroll.Position = UDim2.new(0, 10, 0, 10)
+        contentScroll.BackgroundTransparency = 1
+        contentScroll.BorderSizePixel = 0
+        contentScroll.ScrollBarThickness = 6
+        contentScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+        contentScroll.Visible = false
+        contentScroll.Parent = self.ContentFrame
         
-        local labelText = Instance.new("TextLabel")
-        labelText.BackgroundTransparency = 1
-        labelText.Size = UDim2.new(1, -20, 1, 0)
-        labelText.Position = UDim2.new(0, 10, 0, 0)
-        labelText.Text = tabName
-        labelText.TextColor3 = Theme.Text
-        labelText.TextSize = 16
-        labelText.Font = Enum.Font.GothamBold
-        labelText.TextXAlignment = Enum.TextXAlignment.Left
-        labelText.Parent = tabLabel
+        local contentLayout = Instance.new("UIListLayout")
+        contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        contentLayout.Padding = UDim.new(0, 10)
+        contentLayout.Parent = contentScroll
         
-        -- Store tab
-        tab.icon = iconButton
-        tab.label = tabLabel
-        tab.name = tabName
-        tabs[tabName] = tab
+        tab.TabButton = tabButton
+        tab.ContentScroll = contentScroll
+        tab.ContentLayout = contentLayout
         
-        -- Tab click event
-        iconButton.MouseButton1Click:Connect(function()
-            -- Hide all tabs
-            for _, t in pairs(tabs) do
-                t.label.Visible = false
-                Tween(t.icon, {BackgroundColor3 = Theme.Tertiary, TextColor3 = Theme.TextDark})
-            end
-            
-            -- Show current tab
-            tabLabel.Visible = true
-            Tween(iconButton, {BackgroundColor3 = Theme.Accent, TextColor3 = Theme.Text})
-            currentTab = tab
-            
-            -- Clear main content
-            for _, child in pairs(mainContent:GetChildren()) do
-                if child:IsA("GuiObject") then
-                    child:Destroy()
-                end
-            end
-            
-            -- Show tab elements
-            if elements[tabName] then
-                for _, element in pairs(elements[tabName]) do
-                    if element.Parent ~= mainContent then
-                        element.Parent = mainContent
-                    end
-                end
-            end
-            
-            updateCanvasSize()
+        -- Tab selection
+        tabButton.MouseButton1Click:Connect(function()
+            self:SelectTab(tab)
         end)
         
-        -- Hover effects
-        iconButton.MouseEnter:Connect(function()
-            if currentTab ~= tab then
-                Tween(iconButton, {BackgroundColor3 = Theme.Hover})
-            end
-        end)
-        
-        iconButton.MouseLeave:Connect(function()
-            if currentTab ~= tab then
-                Tween(iconButton, {BackgroundColor3 = Theme.Tertiary})
-            end
-        end)
-        
-        -- Initialize elements for this tab
-        elements[tabName] = {}
-        
-        -- Set first tab as active
-        if next(tabs) == tabName then
-            iconButton.MouseButton1Click:Fire()
-        end
-        
-        -- Tab Elements
-        function tab:CreateSection(config)
-            local sectionFrame = Instance.new("Frame")
-            sectionFrame.Name = config.Name or "Section"
-            sectionFrame.BackgroundColor3 = Theme.Secondary
-            sectionFrame.Size = UDim2.new(1, 0, 0, 40)
+        -- Tab methods
+        function tab:CreateSection(name)
+            local section = Instance.new("TextLabel")
+            section.Name = name .. "Section"
+            section.Size = UDim2.new(1, 0, 0, 25)
+            section.BackgroundTransparency = 1
+            section.Text = name
+            section.TextColor3 = Color3.fromRGB(255, 255, 255)
+            section.TextSize = 16
+            section.Font = Enum.Font.GothamBold
+            section.TextXAlignment = Enum.TextXAlignment.Left
+            section.LayoutOrder = #self.Elements + 1
+            section.Parent = self.ContentScroll
             
-            CreateCorner(sectionFrame, 6)
-            CreateStroke(sectionFrame, Theme.BorderLight)
-            
-            local sectionLabel = Instance.new("TextLabel")
-            sectionLabel.BackgroundTransparency = 1
-            sectionLabel.Size = UDim2.new(1, -20, 1, 0)
-            sectionLabel.Position = UDim2.new(0, 10, 0, 0)
-            sectionLabel.Text = config.Name or "Section"
-            sectionLabel.TextColor3 = Theme.Text
-            sectionLabel.TextSize = 14
-            sectionLabel.Font = Enum.Font.GothamBold
-            sectionLabel.TextXAlignment = Enum.TextXAlignment.Left
-            sectionLabel.Parent = sectionFrame
-            
-            table.insert(elements[tabName], sectionFrame)
-            if currentTab == tab then
-                sectionFrame.Parent = mainContent
-                updateCanvasSize()
-            end
-            
-            return sectionFrame
+            table.insert(self.Elements, section)
+            self:UpdateCanvasSize()
+            return section
         end
         
         function tab:CreateToggle(config)
-            local toggleFrame = Instance.new("Frame")
-            toggleFrame.Name = config.Name or "Toggle"
-            toggleFrame.BackgroundColor3 = Theme.Secondary
-            toggleFrame.Size = UDim2.new(1, 0, 0, 35)
+            config = config or {}
+            local toggle = {
+                Name = config.Name or "Toggle",
+                Default = config.Default or false,
+                Callback = config.Callback or function() end
+            }
             
-            CreateCorner(toggleFrame, 6)
-            CreateStroke(toggleFrame, Theme.BorderLight)
+            local container = Instance.new("Frame")
+            container.Name = toggle.Name .. "Container"
+            container.Size = UDim2.new(1, 0, 0, 25)
+            container.BackgroundTransparency = 1
+            container.LayoutOrder = #self.Elements + 1
+            container.Parent = self.ContentScroll
             
-            -- Toggle label
+            local checkbox = Instance.new("TextButton")
+            checkbox.Size = UDim2.new(0, 20, 0, 20)
+            checkbox.Position = UDim2.new(0, 0, 0, 2.5)
+            checkbox.BackgroundColor3 = toggle.Default and Color3.fromRGB(0, 180, 120) or Color3.fromRGB(60, 60, 60)
+            checkbox.BorderSizePixel = 0
+            checkbox.Text = toggle.Default and "✓" or ""
+            checkbox.TextColor3 = Color3.fromRGB(255, 255, 255)
+            checkbox.TextSize = 14
+            checkbox.Font = Enum.Font.GothamBold
+            checkbox.Parent = container
+            
+            local checkboxCorner = Instance.new("UICorner")
+            checkboxCorner.CornerRadius = UDim.new(0, 3)
+            checkboxCorner.Parent = checkbox
+            
             local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1, -30, 1, 0)
+            label.Position = UDim2.new(0, 30, 0, 0)
             label.BackgroundTransparency = 1
-            label.Size = UDim2.new(1, -80, 1, 0)
-            label.Position = UDim2.new(0, 15, 0, 0)
-            label.Text = config.Name or "Toggle"
-            label.TextColor3 = Theme.Text
+            label.Text = toggle.Name
+            label.TextColor3 = Color3.fromRGB(255, 255, 255)
             label.TextSize = 12
             label.Font = Enum.Font.Gotham
             label.TextXAlignment = Enum.TextXAlignment.Left
-            label.Parent = toggleFrame
+            label.Parent = container
             
-            -- Toggle switch background
-            local switchBg = Instance.new("Frame")
-            switchBg.Name = "SwitchBg"
-            switchBg.BackgroundColor3 = Theme.Background
-            switchBg.Size = UDim2.new(0, 35, 0, 16)
-            switchBg.Position = UDim2.new(1, -50, 0.5, -8)
-            switchBg.Parent = toggleFrame
+            toggle.Value = toggle.Default
             
-            CreateCorner(switchBg, 8)
-            CreateStroke(switchBg, Theme.Border)
-            
-            -- Toggle switch
-            local switch = Instance.new("Frame")
-            switch.Name = "Switch"
-            switch.BackgroundColor3 = Theme.TextDark
-            switch.Size = UDim2.new(0, 12, 0, 12)
-            switch.Position = UDim2.new(0, 2, 0, 2)
-            switch.Parent = switchBg
-            
-            CreateCorner(switch, 6)
-            
-            -- Toggle state
-            local toggled = config.Default or false
-            
-            local function updateToggle()
-                if toggled then
-                    Tween(switch, {
-                        Position = UDim2.new(0, 21, 0, 2),
-                        BackgroundColor3 = Theme.Accent
-                    })
-                    Tween(switchBg, {BackgroundColor3 = Theme.AccentDark})
-                else
-                    Tween(switch, {
-                        Position = UDim2.new(0, 2, 0, 2),
-                        BackgroundColor3 = Theme.TextDark
-                    })
-                    Tween(switchBg, {BackgroundColor3 = Theme.Background})
-                end
-            end
-            
-            updateToggle()
-            
-            -- Toggle button
-            local toggleButton = Instance.new("TextButton")
-            toggleButton.BackgroundTransparency = 1
-            toggleButton.Size = UDim2.new(1, 0, 1, 0)
-            toggleButton.Text = ""
-            toggleButton.Parent = toggleFrame
-            
-            toggleButton.MouseButton1Click:Connect(function()
-                toggled = not toggled
-                updateToggle()
-                if config.Callback then
-                    config.Callback(toggled)
-                end
+            checkbox.MouseButton1Click:Connect(function()
+                toggle.Value = not toggle.Value
+                checkbox.BackgroundColor3 = toggle.Value and Color3.fromRGB(0, 180, 120) or Color3.fromRGB(60, 60, 60)
+                checkbox.Text = toggle.Value and "✓" or ""
+                toggle.Callback(toggle.Value)
             end)
             
-            -- Hover effect
-            toggleButton.MouseEnter:Connect(function()
-                Tween(toggleFrame, {BackgroundColor3 = Theme.Hover})
-            end)
-            
-            toggleButton.MouseLeave:Connect(function()
-                Tween(toggleFrame, {BackgroundColor3 = Theme.Secondary})
-            end)
-            
-            table.insert(elements[tabName], toggleFrame)
-            if currentTab == tab then
-                toggleFrame.Parent = mainContent
-                updateCanvasSize()
-            end
-            
-            return toggleFrame
+            table.insert(self.Elements, container)
+            self:UpdateCanvasSize()
+            return toggle
         end
         
         function tab:CreateSlider(config)
-            local sliderFrame = Instance.new("Frame")
-            sliderFrame.Name = config.Name or "Slider"
-            sliderFrame.BackgroundColor3 = Theme.Secondary
-            sliderFrame.Size = UDim2.new(1, 0, 0, 50)
+            config = config or {}
+            local slider = {
+                Name = config.Name or "Slider",
+                Min = config.Min or 0,
+                Max = config.Max or 100,
+                Default = config.Default or 50,
+                Callback = config.Callback or function() end
+            }
             
-            CreateCorner(sliderFrame, 6)
-            CreateStroke(sliderFrame, Theme.BorderLight)
+            local container = Instance.new("Frame")
+            container.Name = slider.Name .. "Container"
+            container.Size = UDim2.new(1, 0, 0, 45)
+            container.BackgroundTransparency = 1
+            container.LayoutOrder = #self.Elements + 1
+            container.Parent = self.ContentScroll
             
-            -- Slider header
-            local header = Instance.new("Frame")
-            header.BackgroundTransparency = 1
-            header.Size = UDim2.new(1, 0, 0, 20)
-            header.Position = UDim2.new(0, 0, 0, 5)
-            header.Parent = sliderFrame
-            
-            -- Slider label
             local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(0.6, 0, 0, 20)
             label.BackgroundTransparency = 1
-            label.Size = UDim2.new(1, -80, 1, 0)
-            label.Position = UDim2.new(0, 15, 0, 0)
-            label.Text = config.Name or "Slider"
-            label.TextColor3 = Theme.Text
+            label.Text = slider.Name
+            label.TextColor3 = Color3.fromRGB(255, 255, 255)
             label.TextSize = 12
             label.Font = Enum.Font.Gotham
             label.TextXAlignment = Enum.TextXAlignment.Left
-            label.Parent = header
+            label.Parent = container
             
-            -- Value display
             local valueLabel = Instance.new("TextLabel")
+            valueLabel.Size = UDim2.new(0.4, 0, 0, 20)
+            valueLabel.Position = UDim2.new(0.6, 0, 0, 0)
             valueLabel.BackgroundTransparency = 1
-            valueLabel.Size = UDim2.new(0, 60, 1, 0)
-            valueLabel.Position = UDim2.new(1, -70, 0, 0)
-            valueLabel.Text = tostring(config.Default or 0)
-            valueLabel.TextColor3 = Theme.Accent
+            valueLabel.Text = tostring(slider.Default)
+            valueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
             valueLabel.TextSize = 12
-            valueLabel.Font = Enum.Font.GothamBold
+            valueLabel.Font = Enum.Font.Gotham
             valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-            valueLabel.Parent = header
+            valueLabel.Parent = container
             
-            -- Slider track
-            local track = Instance.new("Frame")
-            track.Name = "Track"
-            track.BackgroundColor3 = Theme.Background
-            track.Size = UDim2.new(1, -30, 0, 4)
-            track.Position = UDim2.new(0, 15, 0, 30)
-            track.Parent = sliderFrame
+            local sliderFrame = Instance.new("Frame")
+            sliderFrame.Size = UDim2.new(1, 0, 0, 20)
+            sliderFrame.Position = UDim2.new(0, 0, 0, 25)
+            sliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            sliderFrame.BorderSizePixel = 0
+            sliderFrame.Parent = container
             
-            CreateCorner(track, 2)
-            CreateStroke(track, Theme.Border)
+            local sliderCorner = Instance.new("UICorner")
+            sliderCorner.CornerRadius = UDim.new(0, 10)
+            sliderCorner.Parent = sliderFrame
             
-            -- Slider fill
-            local fill = Instance.new("Frame")
-            fill.Name = "Fill"
-            fill.BackgroundColor3 = Theme.Accent
-            fill.Size = UDim2.new(0, 0, 1, 0)
-            fill.Position = UDim2.new(0, 0, 0, 0)
-            fill.Parent = track
+            local sliderFill = Instance.new("Frame")
+            sliderFill.Size = UDim2.new((slider.Default - slider.Min) / (slider.Max - slider.Min), 0, 1, 0)
+            sliderFill.BackgroundColor3 = Color3.fromRGB(0, 180, 120)
+            sliderFill.BorderSizePixel = 0
+            sliderFill.Parent = sliderFrame
             
-            CreateCorner(fill, 2)
+            local fillCorner = Instance.new("UICorner")
+            fillCorner.CornerRadius = UDim.new(0, 10)
+            fillCorner.Parent = sliderFill
             
-            -- Slider handle
-            local handle = Instance.new("Frame")
-            handle.Name = "Handle"
-            handle.BackgroundColor3 = Theme.Text
-            handle.Size = UDim2.new(0, 12, 0, 12)
-            handle.Position = UDim2.new(1, -6, 0, -4)
-            handle.Parent = fill
+            slider.Value = slider.Default
             
-            CreateCorner(handle, 6)
-            
-            -- Slider logic
-            local min = config.Min or 0
-            local max = config.Max or 100
-            local value = config.Default or min
             local dragging = false
-            
-            local function updateSlider()
-                local percentage = (value - min) / (max - min)
-                fill.Size = UDim2.new(percentage, 0, 1, 0)
-                valueLabel.Text = string.format("%.1f", value)
-            end
-            
-            updateSlider()
-            
-            -- Slider dragging
-            local function startDrag()
-                dragging = true
-                local function updateValue()
-                    local mousePos = UserInputService:GetMouseLocation()
-                    local trackPos = track.AbsolutePosition
-                    local trackSize = track.AbsoluteSize
-                    
-                    local percentage = math.clamp((mousePos.X - trackPos.X) / trackSize.X, 0, 1)
-                    value = min + (max - min) * percentage
-                    
-                    updateSlider()
-                    
-                    if config.Callback then
-                        config.Callback(value)
-                    end
-                end
-                
-                local connection
-                connection = UserInputService.InputChanged:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
-                        updateValue()
-                    end
-                end)
-                
-                local endConnection
-                endConnection = UserInputService.InputEnded:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        dragging = false
-                        connection:Disconnect()
-                        endConnection:Disconnect()
-                    end
-                end)
-            end
-            
-            handle.InputBegan:Connect(function(input)
+            sliderFrame.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    startDrag()
+                    dragging = true
                 end
             end)
             
-            track.InputBegan:Connect(function(input)
+            UserInputService.InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    startDrag()
+                    dragging = false
                 end
             end)
             
-            table.insert(elements[tabName], sliderFrame)
-            if currentTab == tab then
-                sliderFrame.Parent = mainContent
-                updateCanvasSize()
-            end
+            UserInputService.InputChanged:Connect(function(input)
+                if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                    local mouse = UserInputService:GetMouseLocation()
+                    local sliderPos = sliderFrame.AbsolutePosition
+                    local sliderSize = sliderFrame.AbsoluteSize
+                    local relativeX = math.max(0, math.min(1, (mouse.X - sliderPos.X) / sliderSize.X))
+                    
+                    slider.Value = math.floor(slider.Min + (relativeX * (slider.Max - slider.Min)))
+                    sliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
+                    valueLabel.Text = tostring(slider.Value)
+                    slider.Callback(slider.Value)
+                end
+            end)
             
-            return sliderFrame
+            table.insert(self.Elements, container)
+            self:UpdateCanvasSize()
+            return slider
         end
         
-        function tab:CreateDropdown(config)
-            local dropdownFrame = Instance.new("Frame")
-            dropdownFrame.Name = config.Name or "Dropdown"
-            dropdownFrame.BackgroundColor3 = Theme.Secondary
-            dropdownFrame.Size = UDim2.new(1, 0, 0, 35)
+        function tab:CreateButton(config)
+            config = config or {}
+            local button = {
+                Name = config.Name or "Button",
+                Callback = config.Callback or function() end
+            }
             
-            CreateCorner(dropdownFrame, 6)
-            CreateStroke(dropdownFrame, Theme.BorderLight)
+            local buttonElement = Instance.new("TextButton")
+            buttonElement.Name = button.Name .. "Button"
+            buttonElement.Size = UDim2.new(0, 120, 0, 30)
+            buttonElement.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+            buttonElement.BorderSizePixel = 0
+            buttonElement.Text = button.Name
+            buttonElement.TextColor3 = Color3.fromRGB(255, 255, 255)
+            buttonElement.TextSize = 12
+            buttonElement.Font = Enum.Font.Gotham
+            buttonElement.LayoutOrder = #self.Elements + 1
+            buttonElement.Parent = self.ContentScroll
             
-            -- Dropdown button
-            local dropdownButton = Instance.new("TextButton")
-            dropdownButton.BackgroundTransparency = 1
-            dropdownButton.Size = UDim2.new(1, -30, 1, 0)
-            dropdownButton.Position = UDim2.new(0, 15, 0, 0)
-            dropdownButton.Text = config.Default or "Select Option"
-            dropdownButton.TextColor3 = Theme.Text
-            dropdownButton.TextSize = 12
-            dropdownButton.Font = Enum.Font.Gotham
-            dropdownButton.TextXAlignment = Enum.TextXAlignment.Left
-            dropdownButton.Parent = dropdownFrame
+            local buttonCorner = Instance.new("UICorner")
+            buttonCorner.CornerRadius = UDim.new(0, 4)
+            buttonCorner.Parent = buttonElement
             
-            -- Dropdown arrow
-            local arrow = Instance.new("TextLabel")
-            arrow.BackgroundTransparency = 1
-            arrow.Size = UDim2.new(0, 20, 1, 0)
-            arrow.Position = UDim2.new(1, -25, 0, 0)
-            arrow.Text = "▼"
-            arrow.TextColor3 = Theme.TextDark
-            arrow.TextSize = 10
-            arrow.Font = Enum.Font.Gotham
-            arrow.TextXAlignment = Enum.TextXAlignment.Center
-            arrow.Parent = dropdownFrame
+            buttonElement.MouseButton1Click:Connect(function()
+                button.Callback()
+            end)
             
-            -- Dropdown list
-            local dropdownList = Instance.new("Frame")
-            dropdownList.Name = "DropdownList"
-            dropdownList.BackgroundColor3 = Theme.Tertiary
-            dropdownList.Size = UDim2.new(1, 0, 0, 0)
-            dropdownList.Position = UDim2.new(0, 0, 1, 5)
-            dropdownList.Visible = false
-            dropdownList.ZIndex = 10
-            dropdownList.Parent = dropdownFrame
+            table.insert(self.Elements, buttonElement)
+            self:UpdateCanvasSize()
+            return button
+        end
+        
+        function tab:CreateLabel(config)
+            config = config or {}
+            local label = {
+                Text = config.Text or "Label"
+            }
             
-            CreateCorner(dropdownList, 6)
-            CreateStroke(dropdownList, Theme.BorderLight)
+            local labelElement = Instance.new("TextLabel")
+            labelElement.Name = "Label"
+            labelElement.Size = UDim2.new(1, 0, 0, 20)
+            labelElement.BackgroundTransparency = 1
+            labelElement.Text = label.Text
+            labelElement.TextColor3 = Color3.fromRGB(150, 150, 150)
+            labelElement.TextSize = 10
+            labelElement.Font = Enum.Font.Gotham
+            labelElement.TextXAlignment = Enum.TextXAlignment.Left
+            labelElement.LayoutOrder = #self.Elements + 1
+            labelElement.Parent = self.ContentScroll
             
-            local listLayout = Instance.new("UIListLayout")
-            listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-            listLayout.Parent = dropdownList
-            
-            -- Dropdown functionality
-            local isOpen = false
-            
-            local function toggleDropdown()
-                isOpen = not isOpen
-                if isOpen then
-                    local itemCount = #(config.Options or {})
-                    local listHeight = math.min(itemCount * 30, 150)
-                    
-                    dropdownList.Visible = true
-                    Tween(dropdownList, {Size = UDim2.new(1, 0, 0, listHeight)})
-                    Tween(arrow, {Rotation = 180})
-                else
-                    Tween(dropdownList, {Size = UDim2.new(1, 0, 0, 0)})
-                    Tween(arrow, {Rotation = 0})
-                    wait(0.2)
-                    dropdownList.Visible = false
-                end
+            function label:SetText(newText)
+                self.Text = newText
+                labelElement.Text = newText
             end
             
-            dropdownButton.MouseButton1Click:Connect(toggleDropdown)
-            
-            -- Create options
-            for i, option in pairs(config.Options or {}) do
-                local optionButton = Instance.new("TextButton")
-                optionButton.BackgroundColor3 = Theme.Tertiary
-                optionButton.Size = UDim2.new(1, 0, 0, 30)
-                optionButton.Text = option
-                optionButton.TextColor3 = Theme.Text
-                optionButton.TextSize = 12
-                optionButton.Font = Enum.Font.Gotham
-                optionButton.TextXAlignment = Enum.TextXAlignment.Left
-                optionButton.Parent = dropdownList
-                
-                -- Option padding
-                local padding = Instance.new("UIPadding")
-                padding.PaddingLeft = UDim.new(0, 15)
-                padding.Parent = optionButton
-                
-                optionButton.MouseButton1Click:Connect(function()
-                    dropdownButton.Text = option
-                    toggleDropdown()
-                    
-                    if config.Callback then
-                        config.Callback(option)
-                    end
-                end)
-                
-                optionButton.MouseEnter:Connect(function()
-                    Tween(optionButton, {BackgroundColor3 = Theme.Hover})
-                end)
-                
-                optionButton.MouseLeave:Connect(function()
-                    Tween(optionButton, {BackgroundColor3 = Theme.Tertiary})
-                end)
-            end
-            
-            table.insert(elements[tabName], dropdownFrame)
-            if currentTab == tab then
-                dropdownFrame.Parent = mainContent
-                updateCanvasSize()
-            end
-            
-            return dropdownFrame
+            table.insert(self.Elements, labelElement)
+            self:UpdateCanvasSize()
+            return label
+        end
+        
+        function tab:UpdateCanvasSize()
+            wait()
+            self.ContentScroll.CanvasSize = UDim2.new(0, 0, 0, self.ContentLayout.AbsoluteContentSize.Y)
+        end
+        
+        table.insert(self.Tabs, tab)
+        
+        -- Auto-select first tab
+        if #self.Tabs == 1 then
+            self:SelectTab(tab)
         end
         
         return tab
     end
     
+    function window:SelectTab(tab)
+        -- Hide all content
+        for _, child in pairs(self.ContentFrame:GetChildren()) do
+            if child:IsA("ScrollingFrame") then
+                child.Visible = false
+            end
+        end
+        
+        -- Update tab colors
+        for _, t in pairs(self.Tabs) do
+            if t == tab then
+                t.TabButton.BackgroundColor3 = Color3.fromRGB(0, 180, 120)
+                t.ContentScroll.Visible = true
+            else
+                t.TabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            end
+        end
+        
+        self.CurrentTab = tab
+    end
+    
+    function window:Destroy()
+        self.ScreenGui:Destroy()
+    end
+    
     return window
 end
-
--- Example Usage with Full Functionality
-local function CreateFullGUI()
-    local Window = Library:CreateWindow({
-        Name = "Advanced Combat System"
-    })
-    
-    -- Aimbot Tab
-    local AimbotTab = Window:CreateTab({
-        Name = "Aimbot",
-        Icon = "🎯"
-    })
-    
-    AimbotTab:CreateSection({Name = "Aimbot Settings"})
-    
-    AimbotTab:CreateToggle({
-        Name = "Enable Aimbot",
-        Default = false,
-        Callback = function(value)
-            AimbotSettings.Enabled = value
-        end
-    })
-    
-    AimbotTab:CreateSlider({
-        Name = "FOV",
-        Min = 10,
-        Max = 500,
-        Default = 90,
-        Callback = function(value)
-            AimbotSettings.FOV = value
-        end
-    })
-    
-    AimbotTab:CreateSlider({
-        Name = "Smoothness",
-        Min = 0.1,
-        Max = 1,
-        Default = 0.5,
-        Callback = function(value)
-            AimbotSettings.Smoothness = value
-        end
-    })
-    
-    AimbotTab:CreateDropdown({
-        Name = "Target Part",
-        Options = {"Head", "Torso", "HumanoidRootPart"},
-        Default = "Head",
-        Callback = function(option)
-            AimbotSettings.TargetPart = option
-        end
-    })
-    
-    AimbotTab:CreateToggle({
-        Name = "Visibility Check",
-        Default = true,
-        Callback = function(value)
-            AimbotSettings.VisibilityCheck = value
-        end
-    })
-    
-    AimbotTab:CreateToggle({
-        Name = "Team Check",
-        Default = true,
-        Callback = function(value)
-            AimbotSettings.TeamCheck = value
-        end
-    })
-    
-    AimbotTab:CreateToggle({
-        Name = "Show FOV",
-        Default = true,
-        Callback = function(value)
-            AimbotSettings.ShowFOV = value
-        end
-    })
-    
-    -- ESP Tab
-    local ESPTab = Window:CreateTab({
-        Name = "ESP",
-        Icon = "👁️"
-    })
-    
-    ESPTab:CreateSection({Name = "ESP Settings"})
-    
-    ESPTab:CreateToggle({
-        Name = "Enable ESP",
-        Default = false,
-        Callback = function(value)
-            ESPSettings.Enabled = value
-        end
-    })
-    
-    ESPTab:CreateToggle({
-        Name = "Show Box",
-        Default = true,
-        Callback = function(value)
-            ESPSettings.ShowBox = value
-        end
-    })
-    
-    ESPTab:CreateToggle({
-        Name = "Show Name",
-        Default = true,
-        Callback = function(value)
-            ESPSettings.ShowName = value
-        end
-    })
-    
-    ESPTab:CreateToggle({
-        Name = "Show Distance",
-        Default = true,
-        Callback = function(value)
-            ESPSettings.ShowDistance = value
-        end
-    })
-    
-    ESPTab:CreateToggle({
-        Name = "Show Health",
-        Default = true,
-        Callback = function(value)
-            ESPSettings.ShowHealth = value
-        end
-    })
-    
-    -- Player Tab
-    local PlayerTab = Window:CreateTab({
-        Name = "Player",
-        Icon = "🏃"
-    })
-    
-    PlayerTab:CreateSection({Name = "Movement"})
-    
-    PlayerTab:CreateSlider({
-        Name = "Walk Speed",
-        Min = 16,
-        Max = 200,
-        Default = 16,
-        Callback = function(value)
-            SetWalkSpeed(value)
-        end
-    })
-    
-    PlayerTab:CreateSlider({
-        Name = "Jump Power",
-        Min = 50,
-        Max = 300,
-        Default = 50,
-        Callback = function(value)
-            SetJumpPower(value)
-        end
-    })
-    
-    PlayerTab:CreateSlider({
-        Name = "Hip Height",
-        Min = 0,
-        Max = 10,
-        Default = 0,
-        Callback = function(value)
-            SetHipHeight(value)
-        end
-    })
-    
-    PlayerTab:CreateToggle({
-        Name = "No Clip",
-        Default = false,
-        Callback = function(value)
-            ToggleNoClip(value)
-        end
-    })
-    
-    PlayerTab:CreateToggle({
-        Name = "Infinite Jump",
-        Default = false,
-        Callback = function(value)
-            ToggleInfiniteJump(value)
-        end
-    })
-    
-    PlayerTab:CreateSection({Name = "Visual"})
-    
-    PlayerTab:CreateSlider({
-        Name = "FOV",
-        Min = 70,
-        Max = 120,
-        Default = 70,
-        Callback = function(value)
-            SetFOV(value)
-        end
-    })
-    
-    -- Misc Tab
-    local MiscTab = Window:CreateTab({
-        Name = "Misc",
-        Icon = "⚙️"
-    })
-    
-    MiscTab:CreateSection({Name = "Server"})
-    
-    -- Add server hop, rejoin functions here
-    
-    return Window
-end
-
--- Auto-execute
-CreateFullGUI()
 
 return Library
