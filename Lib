@@ -1,967 +1,5 @@
--- Ultra Premium GUI Library v3.0 - Enterprise Level Design -----
-local Library = {}
-Library.__index = Library
-
--- Services
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local TextService = game:GetService("TextService")
-local SoundService = game:GetService("SoundService")
-
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
--- Ultra Premium Theme
-local Theme = {
-    -- Base Colors
-    Background = Color3.fromRGB(12, 15, 25),
-    Surface = Color3.fromRGB(18, 22, 35),
-    SurfaceElevated = Color3.fromRGB(25, 30, 45),
-    
-    -- Primary Colors
-    Primary = Color3.fromRGB(139, 69, 255),
-    PrimaryDark = Color3.fromRGB(110, 50, 220),
-    Secondary = Color3.fromRGB(255, 69, 139),
-    SecondaryDark = Color3.fromRGB(220, 50, 110),
-    
-    -- Accent Colors
-    Accent = Color3.fromRGB(0, 255, 195),
-    AccentGlow = Color3.fromRGB(69, 255, 210),
-    Gold = Color3.fromRGB(255, 215, 0),
-    
-    -- Text Colors
-    Text = Color3.fromRGB(255, 255, 255),
-    TextDim = Color3.fromRGB(180, 185, 200),
-    TextMuted = Color3.fromRGB(120, 125, 140),
-    
-    -- Status Colors
-    Success = Color3.fromRGB(72, 187, 120),
-    Warning = Color3.fromRGB(245, 166, 35),
-    Error = Color3.fromRGB(248, 113, 113),
-    Info = Color3.fromRGB(59, 130, 246),
-    
-    -- Border & Effects
-    Border = Color3.fromRGB(45, 50, 65),
-    BorderAccent = Color3.fromRGB(75, 85, 110),
-    Glow = Color3.fromRGB(139, 69, 255),
-    Shadow = Color3.fromRGB(0, 0, 0),
-    
-    -- Interactive States
-    Hover = Color3.fromRGB(30, 35, 50),
-    Active = Color3.fromRGB(40, 45, 65),
-    Focus = Color3.fromRGB(139, 69, 255),
-}
-
--- Advanced Animation Settings
-local Animations = {
-    Fast = 0.15,
-    Normal = 0.3,
-    Slow = 0.5,
-    Epic = 0.8,
-    
-    Easing = {
-        Standard = Enum.EasingStyle.Quad,
-        Bounce = Enum.EasingStyle.Bounce,
-        Elastic = Enum.EasingStyle.Elastic,
-        Back = Enum.EasingStyle.Back,
-        Exponential = Enum.EasingStyle.Exponential
-    }
-}
-
--- Settings with more options
-local Settings = {
-    ToggleKey = Enum.KeyCode.Insert,
-    FloatButtonEnabled = true,
-    FloatButtonPosition = {0.95, 0.1},
-    FloatButtonSize = 60,
-    AnimationSpeed = "Normal",
-    SoundEnabled = true,
-    ParticleEffects = true,
-    BlurIntensity = 24,
-    GlowEffects = true
-}
-
--- Key Names
-local KeyNames = {
-    [Enum.KeyCode.Insert] = "Insert", [Enum.KeyCode.Home] = "Home", [Enum.KeyCode.End] = "End",
-    [Enum.KeyCode.PageUp] = "Page Up", [Enum.KeyCode.PageDown] = "Page Down", [Enum.KeyCode.Delete] = "Delete",
-    [Enum.KeyCode.F1] = "F1", [Enum.KeyCode.F2] = "F2", [Enum.KeyCode.F3] = "F3", [Enum.KeyCode.F4] = "F4",
-    [Enum.KeyCode.F5] = "F5", [Enum.KeyCode.F6] = "F6", [Enum.KeyCode.F7] = "F7", [Enum.KeyCode.F8] = "F8",
-    [Enum.KeyCode.F9] = "F9", [Enum.KeyCode.F10] = "F10", [Enum.KeyCode.F11] = "F11", [Enum.KeyCode.F12] = "F12",
-    [Enum.KeyCode.Tab] = "Tab", [Enum.KeyCode.BackSlash] = "\\", [Enum.KeyCode.Minus] = "-",
-    [Enum.KeyCode.Equals] = "=", [Enum.KeyCode.RightBracket] = "]", [Enum.KeyCode.LeftBracket] = "[",
-}
-
--- Ultra Premium Utility Functions
-local function CreateTween(object, properties, duration, style, direction)
-    duration = duration or Animations.Normal
-    style = style or Animations.Easing.Standard
-    direction = direction or Enum.EasingDirection.Out
-    return TweenService:Create(object, TweenInfo.new(duration, style, direction), properties)
-end
-
-local function CreateGradient(parent, colors, rotation, transparency)
-    local gradient = Instance.new("UIGradient")
-    gradient.Color = ColorSequence.new(colors)
-    gradient.Rotation = rotation or 0
-    if transparency then
-        gradient.Transparency = NumberSequence.new(transparency)
-    end
-    gradient.Parent = parent
-    return gradient
-end
-
-local function CreateGlow(parent, color, size, intensity)
-    local glow = Instance.new("ImageLabel")
-    glow.Name = "Glow"
-    glow.Size = UDim2.new(1, size or 20, 1, size or 20)
-    glow.Position = UDim2.new(0, -(size or 20)/2, 0, -(size or 20)/2)
-    glow.BackgroundTransparency = 1
-    glow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
-    glow.ImageColor3 = color or Theme.Glow
-    glow.ImageTransparency = 1 - (intensity or 0.3)
-    glow.ZIndex = parent.ZIndex - 1
-    glow.Parent = parent.Parent
-    
-    -- Animated glow effect
-    local glowTween = CreateTween(glow, {ImageTransparency = 0.1}, 1, Animations.Easing.Exponential)
-    glowTween:Play()
-    glowTween.Completed:Connect(function()
-        CreateTween(glow, {ImageTransparency = 0.8}, 1, Animations.Easing.Exponential):Play()
-    end)
-    
-    return glow
-end
-
-local function CreateShadow(parent, color, offset, blur)
-    local shadow = Instance.new("Frame")
-    shadow.Name = "Shadow"
-    shadow.Size = UDim2.new(1, blur or 10, 1, blur or 10)
-    shadow.Position = UDim2.new(0, offset or 5, 0, offset or 5)
-    shadow.BackgroundColor3 = color or Theme.Shadow
-    shadow.BackgroundTransparency = 0.7
-    shadow.BorderSizePixel = 0
-    shadow.ZIndex = parent.ZIndex - 1
-    shadow.Parent = parent.Parent
-    
-    local shadowCorner = Instance.new("UICorner")
-    shadowCorner.CornerRadius = UDim.new(0, 15)
-    shadowCorner.Parent = shadow
-    
-    return shadow
-end
-
-local function PlaySound(soundId, volume, pitch)
-    if not Settings.SoundEnabled then return end
-    
-    local sound = Instance.new("Sound")
-    sound.SoundId = "rbxasset://sounds/" .. (soundId or "electronicpingshort.wav")
-    sound.Volume = volume or 0.5
-    sound.Pitch = pitch or 1
-    sound.Parent = SoundService
-    sound:Play()
-    
-    sound.Ended:Connect(function()
-        sound:Destroy()
-    end)
-end
-
-local function UltraRippleEffect(button, color)
-    PlaySound("electronicpingshort.wav", 0.3, 1.2)
-    
-    for i = 1, 3 do
-        spawn(function()
-            wait((i-1) * 0.1)
-            
-            local ripple = Instance.new("Frame")
-            ripple.Size = UDim2.new(0, 0, 0, 0)
-            ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
-            ripple.AnchorPoint = Vector2.new(0.5, 0.5)
-            ripple.BackgroundColor3 = color or Theme.Accent
-            ripple.BackgroundTransparency = 0.3
-            ripple.BorderSizePixel = 0
-            ripple.ZIndex = button.ZIndex + 10
-            ripple.Parent = button
-            
-            local rippleCorner = Instance.new("UICorner")
-            rippleCorner.CornerRadius = UDim.new(1, 0)
-            rippleCorner.Parent = ripple
-            
-            local maxSize = math.max(button.AbsoluteSize.X, button.AbsoluteSize.Y) * 3
-            local expandTween = CreateTween(ripple, {
-                Size = UDim2.new(0, maxSize, 0, maxSize),
-                BackgroundTransparency = 1
-            }, 0.6, Animations.Easing.Exponential)
-            
-            expandTween:Play()
-            expandTween.Completed:Connect(function()
-                ripple:Destroy()
-            end)
-        end)
-    end
-end
-
-local function CreateParticleEffect(parent, color, count)
-    if not Settings.ParticleEffects then return end
-    
-    for i = 1, count or 5 do
-        spawn(function()
-            wait(math.random() * 0.5)
-            
-            local particle = Instance.new("Frame")
-            particle.Size = UDim2.new(0, math.random(2, 6), 0, math.random(2, 6))
-            particle.Position = UDim2.new(math.random(), 0, math.random(), 0)
-            particle.BackgroundColor3 = color or Theme.Accent
-            particle.BackgroundTransparency = 0.5
-            particle.BorderSizePixel = 0
-            particle.ZIndex = parent.ZIndex + 5
-            particle.Parent = parent
-            
-            local particleCorner = Instance.new("UICorner")
-            particleCorner.CornerRadius = UDim.new(1, 0)
-            particleCorner.Parent = particle
-            
-            -- Animate particle
-            local floatTween = CreateTween(particle, {
-                Position = UDim2.new(math.random(), 0, -0.2, 0),
-                BackgroundTransparency = 1,
-                Rotation = math.random(-180, 180)
-            }, math.random(1, 3), Animations.Easing.Exponential)
-            
-            floatTween:Play()
-            floatTween.Completed:Connect(function()
-                particle:Destroy()
-            end)
-        end)
-    end
-end
-
--- Ultra Premium Float Button
-local function CreateUltraPremiumFloatButton(window)
-    local floatGui = Instance.new("ScreenGui")
-    floatGui.Name = "UltraPremiumFloat_" .. math.random(1000, 9999)
-    floatGui.Parent = playerGui
-    floatGui.ResetOnSpawn = false
-    floatGui.IgnoreGuiInset = true
-    floatGui.DisplayOrder = 1000
-    
-    -- Main float button
-    local floatButton = Instance.new("TextButton")
-    floatButton.Name = "FloatButton"
-    floatButton.Size = UDim2.new(0, Settings.FloatButtonSize, 0, Settings.FloatButtonSize)
-    floatButton.Position = UDim2.new(Settings.FloatButtonPosition[1], -Settings.FloatButtonSize/2, Settings.FloatButtonPosition[2], -Settings.FloatButtonSize/2)
-    floatButton.BackgroundColor3 = Theme.Background
-    floatButton.BackgroundTransparency = 0.1
-    floatButton.BorderSizePixel = 0
-    floatButton.Text = ""
-    floatButton.ZIndex = 10
-    floatButton.Parent = floatGui
-    
-    local floatCorner = Instance.new("UICorner")
-    floatCorner.CornerRadius = UDim.new(1, 0)
-    floatCorner.Parent = floatButton
-    
-    -- Gradient background
-    local floatGradient = CreateGradient(floatButton, {
-        ColorSequenceKeypoint.new(0, Theme.Primary),
-        ColorSequenceKeypoint.new(0.5, Theme.Secondary),
-        ColorSequenceKeypoint.new(1, Theme.Accent)
-    }, 45)
-    
-    -- Multiple borders for depth
-    local outerStroke = Instance.new("UIStroke")
-    outerStroke.Color = Theme.Accent
-    outerStroke.Thickness = 3
-    outerStroke.Transparency = 0.3
-    outerStroke.Parent = floatButton
-    
-    -- Icon container
-    local iconContainer = Instance.new("Frame")
-    iconContainer.Size = UDim2.new(0.6, 0, 0.6, 0)
-    iconContainer.Position = UDim2.new(0.2, 0, 0.2, 0)
-    iconContainer.BackgroundTransparency = 1
-    iconContainer.ZIndex = 11
-    iconContainer.Parent = floatButton
-    
-    local icon = Instance.new("TextLabel")
-    icon.Size = UDim2.new(1, 0, 1, 0)
-    icon.BackgroundTransparency = 1
-    icon.Text = "⚡"
-    icon.TextColor3 = Theme.Text
-    icon.TextSize = Settings.FloatButtonSize * 0.4
-    icon.Font = Enum.Font.GothamBold
-    icon.TextXAlignment = Enum.TextXAlignment.Center
-    icon.TextYAlignment = Enum.TextYAlignment.Center
-    icon.ZIndex = 12
-    icon.Parent = iconContainer
-    
-    -- Create glow effect
-    if Settings.GlowEffects then
-        CreateGlow(floatButton, Theme.Accent, 40, 0.4)
-    end
-    
-    -- Breathing animation
-    local function startBreathing()
-        local breathe1 = CreateTween(floatButton, {
-            Size = UDim2.new(0, Settings.FloatButtonSize + 8, 0, Settings.FloatButtonSize + 8)
-        }, 2, Animations.Easing.Exponential)
-        
-        local rotate1 = CreateTween(iconContainer, {Rotation = 180}, 2)
-        
-        breathe1:Play()
-        rotate1:Play()
-        
-        breathe1.Completed:Connect(function()
-            local breathe2 = CreateTween(floatButton, {
-                Size = UDim2.new(0, Settings.FloatButtonSize, 0, Settings.FloatButtonSize)
-            }, 2, Animations.Easing.Exponential)
-            
-            local rotate2 = CreateTween(iconContainer, {Rotation = 360}, 2)
-            
-            breathe2:Play()
-            rotate2:Play()
-            
-            breathe2.Completed:Connect(function()
-                iconContainer.Rotation = 0
-                if floatButton.Parent then
-                    startBreathing()
-                end
-            end)
-        end)
-    end
-    startBreathing()
-    
-    -- Hover effects
-    floatButton.MouseEnter:Connect(function()
-        PlaySound("electronicpingshort.wav", 0.2, 1.5)
-        CreateTween(floatButton, {
-            Size = UDim2.new(0, Settings.FloatButtonSize + 15, 0, Settings.FloatButtonSize + 15)
-        }, Animations.Fast, Animations.Easing.Back):Play()
-        CreateTween(outerStroke, {Transparency = 0.1, Thickness = 5}, Animations.Fast):Play()
-        CreateParticleEffect(floatButton, Theme.Accent, 8)
-    end)
-    
-    floatButton.MouseLeave:Connect(function()
-        CreateTween(floatButton, {
-            Size = UDim2.new(0, Settings.FloatButtonSize, 0, Settings.FloatButtonSize)
-        }, Animations.Fast, Animations.Easing.Back):Play()
-        CreateTween(outerStroke, {Transparency = 0.3, Thickness = 3}, Animations.Fast):Play()
-    end)
-    
-    -- Click effect
-    floatButton.MouseButton1Click:Connect(function()
-        UltraRippleEffect(floatButton, Theme.Gold)
-        CreateTween(iconContainer, {Rotation = iconContainer.Rotation + 360}, 0.5, Animations.Easing.Back):Play()
-        window.ScreenGui.Enabled = not window.ScreenGui.Enabled
-    end)
-    
-    -- Dragging with smooth easing
-    local floatDragging = false
-    local floatDragStart = nil
-    local floatStartPos = nil
-    
-    floatButton.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            floatDragging = true
-            floatDragStart = input.Position
-            floatStartPos = floatButton.Position
-            CreateTween(floatButton, {Size = UDim2.new(0, Settings.FloatButtonSize - 5, 0, Settings.FloatButtonSize - 5)}, Animations.Fast):Play()
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement and floatDragging then
-            local delta = input.Position - floatDragStart
-            local newPos = UDim2.new(0, floatStartPos.X.Offset + delta.X, 0, floatStartPos.Y.Offset + delta.Y)
-            CreateTween(floatButton, {Position = newPos}, 0.1):Play()
-        end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            floatDragging = false
-            CreateTween(floatButton, {Size = UDim2.new(0, Settings.FloatButtonSize, 0, Settings.FloatButtonSize)}, Animations.Fast, Animations.Easing.Back):Play()
-        end
-    end)
-    
-    window.FloatGui = floatGui
-    window.FloatButton = floatButton
-    
-    -- Visibility management
-    local function updateFloatButtonVisibility()
-        if window.ScreenGui.Enabled then
-            CreateTween(floatButton, {BackgroundTransparency = 1}, Animations.Normal):Play()
-            wait(Animations.Normal)
-            floatButton.Visible = false
-        else
-            floatButton.Visible = Settings.FloatButtonEnabled
-            if Settings.FloatButtonEnabled then
-                CreateTween(floatButton, {BackgroundTransparency = 0.1}, Animations.Normal):Play()
-            end
-        end
-    end
-    
-    window.ScreenGui:GetPropertyChangedSignal("Enabled"):Connect(updateFloatButtonVisibility)
-    updateFloatButtonVisibility()
-end
-
--- Main Library Function
-function Library:CreateWindow(config)
-    config = config or {}
-    local window = {
-        Title = config.Title or "Ultra Premium GUI",
-        Size = config.Size or {800, 600},
-        Position = config.Position or {0.5, 0.5},
-        ToggleKey = config.ToggleKey or Settings.ToggleKey,
-        Tabs = {},
-        Elements = {},
-        Callbacks = {},
-        Minimized = false
-    }
-    
-    -- Create main ScreenGui
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "UltraPremiumGUI_" .. math.random(1000, 9999)
-    screenGui.Parent = playerGui
-    screenGui.ResetOnSpawn = false
-    screenGui.IgnoreGuiInset = true
-    screenGui.DisplayOrder = 999
-    
-    -- Blur background
-    local backgroundBlur = Instance.new("Frame")
-    backgroundBlur.Name = "BackgroundBlur"
-    backgroundBlur.Size = UDim2.new(1, 0, 1, 0)
-    backgroundBlur.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    backgroundBlur.BackgroundTransparency = 0.2
-    backgroundBlur.BorderSizePixel = 0
-    backgroundBlur.ZIndex = 1
-    backgroundBlur.Parent = screenGui
-    
-    -- Main container with shadow
-    local mainContainer = Instance.new("Frame")
-    mainContainer.Name = "MainContainer"
-    mainContainer.Size = UDim2.new(0, window.Size[1], 0, window.Size[2])
-    mainContainer.Position = UDim2.new(0.5, -window.Size[1]/2, 0.5, -window.Size[2]/2)
-    mainContainer.BackgroundColor3 = Theme.Background
-    mainContainer.BorderSizePixel = 0
-    mainContainer.ZIndex = 2
-    mainContainer.Parent = screenGui
-    
-    local mainCorner = Instance.new("UICorner")
-    mainCorner.CornerRadius = UDim.new(0, 20)
-    mainCorner.Parent = mainContainer
-    
-    -- Create shadow
-    CreateShadow(mainContainer, Theme.Shadow, 10, 30)
-    
-    -- Main border with gradient
-    local mainStroke = Instance.new("UIStroke")
-    mainStroke.Thickness = 2
-    mainStroke.Transparency = 0.5
-    mainStroke.Parent = mainContainer
-    
-    -- Create border gradient
-    local borderGradient = CreateGradient(mainStroke, {
-        ColorSequenceKeypoint.new(0, Theme.Primary),
-        ColorSequenceKeypoint.new(0.5, Theme.Accent),
-        ColorSequenceKeypoint.new(1, Theme.Secondary)
-    }, 0)
-    
-    -- Animated border rotation
-    spawn(function()
-        while mainContainer.Parent do
-            CreateTween(borderGradient, {Rotation = borderGradient.Rotation + 360}, 10):Play()
-            wait(10)
-        end
-    end)
-    
-    -- Ultra Premium Title Bar
-    local titleBar = Instance.new("Frame")
-    titleBar.Name = "TitleBar"
-    titleBar.Size = UDim2.new(1, 0, 0, 60)
-    titleBar.Position = UDim2.new(0, 0, 0, 0)
-    titleBar.BackgroundColor3 = Theme.Surface
-    titleBar.BorderSizePixel = 0
-    titleBar.ZIndex = 3
-    titleBar.Parent = mainContainer
-    
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 20)
-    titleCorner.Parent = titleBar
-    
-    -- Title bar gradient
-    local titleGradient = CreateGradient(titleBar, {
-        ColorSequenceKeypoint.new(0, Theme.Primary),
-        ColorSequenceKeypoint.new(0.3, Theme.Background),
-        ColorSequenceKeypoint.new(0.7, Theme.Background),
-        ColorSequenceKeypoint.new(1, Theme.Secondary)
-    }, 90, {0, 0.7, 0.7, 0})
-    
-    -- Title bar glow
-    if Settings.GlowEffects then
-        CreateGlow(titleBar, Theme.Primary, 30, 0.2)
-    end
-    
-    -- Logo/Icon
-    local logoContainer = Instance.new("Frame")
-    logoContainer.Size = UDim2.new(0, 40, 0, 40)
-    logoContainer.Position = UDim2.new(0, 15, 0, 10)
-    logoContainer.BackgroundColor3 = Theme.Accent
-    logoContainer.BorderSizePixel = 0
-    logoContainer.ZIndex = 4
-    logoContainer.Parent = titleBar
-    
-    local logoCorner = Instance.new("UICorner")
-    logoCorner.CornerRadius = UDim.new(0, 8)
-    logoCorner.Parent = logoContainer
-    
-    local logoGradient = CreateGradient(logoContainer, {
-        ColorSequenceKeypoint.new(0, Theme.Gold),
-        ColorSequenceKeypoint.new(1, Theme.Accent)
-    }, 45)
-    
-    local logo = Instance.new("TextLabel")
-    logo.Size = UDim2.new(1, 0, 1, 0)
-    logo.BackgroundTransparency = 1
-    logo.Text = "⚡"
-    logo.TextColor3 = Theme.Text
-    logo.TextSize = 20
-    logo.Font = Enum.Font.GothamBold
-    logo.TextXAlignment = Enum.TextXAlignment.Center
-    logo.TextYAlignment = Enum.TextYAlignment.Center
-    logo.ZIndex = 5
-    logo.Parent = logoContainer
-    
-    -- Animated logo rotation
-    spawn(function()
-        while logoContainer.Parent do
-            CreateTween(logo, {Rotation = logo.Rotation + 360}, 5, Animations.Easing.Exponential):Play()
-            wait(5)
-        end
-    end)
-    
-    -- Title text with better typography
-    local titleText = Instance.new("TextLabel")
-    titleText.Name = "TitleText"
-    titleText.Size = UDim2.new(1, -200, 1, 0)
-    titleText.Position = UDim2.new(0, 65, 0, 0)
-    titleText.BackgroundTransparency = 1
-    titleText.Text = window.Title
-    titleText.TextColor3 = Theme.Text
-    titleText.TextSize = 20
-    titleText.Font = Enum.Font.GothamBold
-    titleText.TextXAlignment = Enum.TextXAlignment.Left
-    titleText.TextYAlignment = Enum.TextYAlignment.Center
-    titleText.ZIndex = 4
-    titleText.Parent = titleBar
-    
-    -- Add text glow effect
-    local titleTextGlow = titleText:Clone()
-    titleTextGlow.Name = "TitleTextGlow"
-    titleTextGlow.TextColor3 = Theme.Accent
-    titleTextGlow.TextTransparency = 0.7
-    titleTextGlow.Position = UDim2.new(0, 67, 0, 2)
-    titleTextGlow.ZIndex = 3
-    titleTextGlow.Parent = titleBar
-    
-    -- Premium control buttons
-    local controlsContainer = Instance.new("Frame")
-    controlsContainer.Name = "ControlsContainer"
-    controlsContainer.Size = UDim2.new(0, 150, 0, 40)
-    controlsContainer.Position = UDim2.new(1, -160, 0, 10)
-    controlsContainer.BackgroundTransparency = 1
-    controlsContainer.ZIndex = 4
-    controlsContainer.Parent = titleBar
-    
-    local controlsLayout = Instance.new("UIListLayout")
-    controlsLayout.FillDirection = Enum.FillDirection.Horizontal
-    controlsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-    controlsLayout.Padding = UDim.new(0, 8)
-    controlsLayout.Parent = controlsContainer
-    
-    -- Function to create premium control button
-    local function createControlButton(icon, color, hoverColor, callback)
-        local button = Instance.new("TextButton")
-        button.Size = UDim2.new(0, 35, 0, 35)
-        button.BackgroundColor3 = color
-        button.BorderSizePixel = 0
-        button.Text = icon
-        button.TextColor3 = Theme.Text
-        button.TextSize = 14
-        button.Font = Enum.Font.GothamBold
-        button.ZIndex = 5
-        button.Parent = controlsContainer
-        
-        local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0, 8)
-        buttonCorner.Parent = button
-        
-        local buttonGradient = CreateGradient(button, {
-            ColorSequenceKeypoint.new(0, color),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(
-                math.max(0, color.R * 255 - 30),
-                math.max(0, color.G * 255 - 30),
-                math.max(0, color.B * 255 - 30)
-            ))
-        }, 90)
-        
-        -- Hover effects
-        button.MouseEnter:Connect(function()
-            PlaySound("electronicpingshort.wav", 0.1, 2)
-            CreateTween(button, {
-                Size = UDim2.new(0, 38, 0, 38),
-                BackgroundColor3 = hoverColor
-            }, Animations.Fast, Animations.Easing.Back):Play()
-            CreateParticleEffect(button, color, 3)
-        end)
-        
-        button.MouseLeave:Connect(function()
-            CreateTween(button, {
-                Size = UDim2.new(0, 35, 0, 35),
-                BackgroundColor3 = color
-            }, Animations.Fast, Animations.Easing.Back):Play()
-        end)
-        
-        button.MouseButton1Click:Connect(function()
-            UltraRippleEffect(button, Theme.Gold)
-            callback()
-        end)
-        
-        return button
-    end
-    
-    -- Create control buttons
-    local minimizeButton = createControlButton("−", Theme.Warning, Theme.Gold, function()
-        window.Minimized = not window.Minimized
-        -- Minimize logic will be added later
-    end)
-    
-    local maximizeButton = createControlButton("□", Theme.Success, Theme.AccentGlow, function()
-        -- Maximize logic will be added later
-    end)
-    
-    local closeButton = createControlButton("✕", Theme.Error, Color3.fromRGB(255, 100, 100), function()
-        -- Close with epic animation
-        CreateParticleEffect(mainContainer, Theme.Error, 15)
-        PlaySound("electronicpingshort.wav", 0.8, 0.5)
-        local closeTween = CreateTween(mainContainer, {
-            Size = UDim2.new(0, 0, 0, 0),
-            Position = UDim2.new(0.5, 0, 0.5, 0),
-            Rotation = 360
-        }, Animations.Epic, Animations.Easing.Back)
-        CreateTween(backgroundBlur, {BackgroundTransparency = 1}, Animations.Epic):Play()
-        closeTween:Play()
-        closeTween.Completed:Connect(function()
-            screenGui:Destroy()
-            if window.FloatGui then
-                window.FloatGui:Destroy()
-            end
-        end)
-    end)
-    
-    -- Ultra Premium Navigation Sidebar
-    local sidebarContainer = Instance.new("Frame")
-    sidebarContainer.Name = "SidebarContainer"
-    sidebarContainer.Size = UDim2.new(0, 180, 1, -75)
-    sidebarContainer.Position = UDim2.new(0, 15, 0, 70)
-    sidebarContainer.BackgroundColor3 = Theme.Surface
-    sidebarContainer.BorderSizePixel = 0
-    sidebarContainer.ZIndex = 3
-    sidebarContainer.Parent = mainContainer
-    
-    local sidebarCorner = Instance.new("UICorner")
-    sidebarCorner.CornerRadius = UDim.new(0, 15)
-    sidebarCorner.Parent = sidebarContainer
-    
-    local sidebarStroke = Instance.new("UIStroke")
-    sidebarStroke.Color = Theme.BorderAccent
-    sidebarStroke.Thickness = 1
-    sidebarStroke.Transparency = 0.6
-    sidebarStroke.Parent = sidebarContainer
-    
-    -- Sidebar background effect
-    local sidebarBg = Instance.new("Frame")
-    sidebarBg.Size = UDim2.new(1, 0, 1, 0)
-    sidebarBg.BackgroundTransparency = 1
-    sidebarBg.ZIndex = 2
-    sidebarBg.Parent = sidebarContainer
-    
-    local sidebarBgCorner = Instance.new("UICorner")
-    sidebarBgCorner.CornerRadius = UDim.new(0, 15)
-    sidebarBgCorner.Parent = sidebarBg
-    
-    local sidebarGradient = CreateGradient(sidebarBg, {
-        ColorSequenceKeypoint.new(0, Theme.Primary),
-        ColorSequenceKeypoint.new(0.5, Theme.Background),
-        ColorSequenceKeypoint.new(1, Theme.Secondary)
-    }, 45, {0.95, 0.98, 0.95})
-    
-    -- Tab navigation with scroll
-    local tabNavigation = Instance.new("ScrollingFrame")
-    tabNavigation.Name = "TabNavigation"
-    tabNavigation.Size = UDim2.new(1, -20, 1, -20)
-    tabNavigation.Position = UDim2.new(0, 10, 0, 10)
-    tabNavigation.BackgroundTransparency = 1
-    tabNavigation.BorderSizePixel = 0
-    tabNavigation.ScrollBarThickness = 4
-    tabNavigation.ScrollBarImageColor3 = Theme.Accent
-    tabNavigation.ScrollBarImageTransparency = 0.7
-    tabNavigation.ZIndex = 4
-    tabNavigation.Parent = sidebarContainer
-    
-    local tabLayout = Instance.new("UIListLayout")
-    tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    tabLayout.Padding = UDim.new(0, 8)
-    tabLayout.Parent = tabNavigation
-    
-    local tabPadding = Instance.new("UIPadding")
-    tabPadding.PaddingTop = UDim.new(0, 10)
-    tabPadding.PaddingLeft = UDim.new(0, 5)
-    tabPadding.PaddingRight = UDim.new(0, 5)
-    tabPadding.PaddingBottom = UDim.new(0, 10)
-    tabPadding.Parent = tabNavigation
-    
-    -- Ultra Premium Content Area
-    local contentArea = Instance.new("Frame")
-    contentArea.Name = "ContentArea"
-    contentArea.Size = UDim2.new(1, -220, 1, -75)
-    contentArea.Position = UDim2.new(0, 205, 0, 70)
-    contentArea.BackgroundColor3 = Theme.SurfaceElevated
-    contentArea.BorderSizePixel = 0
-    contentArea.ZIndex = 3
-    contentArea.Parent = mainContainer
-    
-    local contentCorner = Instance.new("UICorner")
-    contentCorner.CornerRadius = UDim.new(0, 15)
-    contentCorner.Parent = contentArea
-    
-    local contentStroke = Instance.new("UIStroke")
-    contentStroke.Color = Theme.BorderAccent
-    contentStroke.Thickness = 1
-    contentStroke.Transparency = 0.6
-    contentStroke.Parent = contentArea
-    
-    -- Content area background pattern
-    local contentPattern = Instance.new("Frame")
-    contentPattern.Size = UDim2.new(1, 0, 1, 0)
-    contentPattern.BackgroundTransparency = 1
-    contentPattern.ZIndex = 2
-    contentPattern.Parent = contentArea
-    
-    local patternCorner = Instance.new("UICorner")
-    patternCorner.CornerRadius = UDim.new(0, 15)
-    patternCorner.Parent = contentPattern
-    
-    local patternGradient = CreateGradient(contentPattern, {
-        ColorSequenceKeypoint.new(0, Theme.Accent),
-        ColorSequenceKeypoint.new(1, Theme.Primary)
-    }, 135, {0.98, 0.99})
-    
-    -- Store references
-    window.ScreenGui = screenGui
-    window.MainContainer = mainContainer
-    window.BackgroundBlur = backgroundBlur
-    window.TabNavigation = tabNavigation
-    window.ContentArea = contentArea
-    window.CurrentTab = nil
-    
-    -- Create Ultra Premium Float Button
-    CreateUltraPremiumFloatButton(window)
-    
-    -- Enhanced dragging with momentum
-    local dragging = false
-    local dragStart = nil
-    local startPos = nil
-    local momentum = Vector2.new(0, 0)
-    local lastDragPos = nil
-    local dragTime = 0
-    
-    titleBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = mainContainer.Position
-            lastDragPos = input.Position
-            dragTime = tick()
-            
-            PlaySound("electronicpingshort.wav", 0.1, 1.8)
-            CreateTween(mainContainer, {Size = UDim2.new(0, window.Size[1] - 10, 0, window.Size[2] - 10)}, Animations.Fast):Play()
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
-            local delta = input.Position - dragStart
-            local newTime = tick()
-            if lastDragPos then
-                momentum = (input.Position - lastDragPos) / (newTime - dragTime)
-            end
-            lastDragPos = input.Position
-            dragTime = newTime
-            
-            mainContainer.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-            CreateTween(mainContainer, {Size = UDim2.new(0, window.Size[1], 0, window.Size[2])}, Animations.Fast, Animations.Easing.Back):Play()
-            
-            -- Apply momentum for smooth stop
-            if momentum.Magnitude > 5 then
-                local momentumTween = CreateTween(mainContainer, {
-                    Position = UDim2.new(
-                        mainContainer.Position.X.Scale,
-                        mainContainer.Position.X.Offset + momentum.X * 0.3,
-                        mainContainer.Position.Y.Scale,
-                        mainContainer.Position.Y.Offset + momentum.Y * 0.3
-                    )
-                }, 0.5, Animations.Easing.Exponential)
-                momentumTween:Play()
-            end
-        end
-    end)
-    
-    -- Enhanced minimize functionality
-    minimizeButton.MouseButton1Click:Connect(function()
-        window.Minimized = not window.Minimized
-        
-        if window.Minimized then
-            CreateTween(sidebarContainer, {Size = UDim2.new(0, 180, 0, 0)}, Animations.Normal, Animations.Easing.Back):Play()
-            CreateTween(contentArea, {Size = UDim2.new(1, -220, 0, 0)}, Animations.Normal, Animations.Easing.Back):Play()
-            CreateTween(mainContainer, {Size = UDim2.new(0, window.Size[1], 0, 60)}, Animations.Normal, Animations.Easing.Back):Play()
-            minimizeButton.Text = "+"
-        else
-            CreateTween(sidebarContainer, {Size = UDim2.new(0, 180, 1, -75)}, Animations.Normal, Animations.Easing.Back):Play()
-            CreateTween(contentArea, {Size = UDim2.new(1, -220, 1, -75)}, Animations.Normal, Animations.Easing.Back):Play()
-            CreateTween(mainContainer, {Size = UDim2.new(0, window.Size[1], 0, window.Size[2])}, Animations.Normal, Animations.Easing.Back):Play()
-            minimizeButton.Text = "−"
-        end
-    end)
-    
-    -- Enhanced maximize functionality
-    maximizeButton.MouseButton1Click:Connect(function()
-        if mainContainer.Size.X.Offset == window.Size[1] then
-            -- Maximize with epic effect
-            CreateParticleEffect(mainContainer, Theme.Success, 20)
-            CreateTween(mainContainer, {
-                Size = UDim2.new(0, 1000, 0, 700),
-                Position = UDim2.new(0.5, -500, 0.5, -350)
-            }, Animations.Slow, Animations.Easing.Back):Play()
-        else
-            -- Restore
-            CreateTween(mainContainer, {
-                Size = UDim2.new(0, window.Size[1], 0, window.Size[2]),
-                Position = UDim2.new(0.5, -window.Size[1]/2, 0.5, -window.Size[2]/2)
-            }, Animations.Slow, Animations.Easing.Back):Play()
-        end
-    end)
-    
-    -- Enhanced toggle functionality
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if not gameProcessed and input.KeyCode == Settings.ToggleKey then
-            if screenGui.Enabled then
-                -- Hide with scale down effect
-                CreateTween(mainContainer, {
-                    Size = UDim2.new(0, 0, 0, 0),
-                    Position = UDim2.new(0.5, 0, 0.5, 0),
-                    Rotation = -90
-                }, Animations.Normal, Animations.Easing.Back):Play()
-                CreateTween(backgroundBlur, {BackgroundTransparency = 1}, Animations.Normal):Play()
-                wait(Animations.Normal)
-                screenGui.Enabled = false
-            else
-                -- Show with scale up effect
-                screenGui.Enabled = true
-                mainContainer.Size = UDim2.new(0, 0, 0, 0)
-                mainContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
-                mainContainer.Rotation = 90
-                CreateTween(backgroundBlur, {BackgroundTransparency = 0.2}, Animations.Normal):Play()
-                CreateTween(mainContainer, {
-                    Size = UDim2.new(0, window.Size[1], 0, window.Size[2]),
-                    Position = UDim2.new(0.5, -window.Size[1]/2, 0.5, -window.Size[2]/2),
-                    Rotation = 0
-                }, Animations.Normal, Animations.Easing.Back):Play()
-                CreateParticleEffect(mainContainer, Theme.Accent, 25)
-            end
-        end
-    end)
-    
-    -- Window methods
-    function window:SelectTab(tab)
-        if self.CurrentTab then
-            -- Deselect current tab
-            CreateTween(self.CurrentTab.TabButton, {BackgroundColor3 = Theme.Background}, Animations.Fast):Play()
-            CreateTween(self.CurrentTab.TabText, {TextColor3 = Theme.TextDim}, Animations.Fast):Play()
-            CreateTween(self.CurrentTab.TabIndicator, {Size = UDim2.new(0, 4, 0, 0)}, Animations.Fast):Play()
-            self.CurrentTab.ContentScroll.Visible = false
-            
-            -- Fade out old content
-            CreateTween(self.CurrentTab.ContentScroll, {BackgroundTransparency = 1}, Animations.Fast):Play()
-        end
-        
-        self.CurrentTab = tab
-        
-        -- Select new tab with premium effects
-        PlaySound("electronicpingshort.wav", 0.3, 1.3)
-        CreateTween(tab.TabButton, {BackgroundColor3 = Theme.Primary}, Animations.Fast, Animations.Easing.Back):Play()
-        CreateTween(tab.TabText, {TextColor3 = Theme.Text}, Animations.Fast):Play()
-        CreateTween(tab.TabIndicator, {Size = UDim2.new(0, 4, 0, 35)}, Animations.Fast, Animations.Easing.Back):Play()
-        
-        -- Show new content with slide effect
-        tab.ContentScroll.Visible = true
-        tab.ContentScroll.Position = UDim2.new(0, 50, 0, 10)
-        tab.ContentScroll.BackgroundTransparency = 1
-        CreateTween(tab.ContentScroll, {
-            Position = UDim2.new(0, 15, 0, 15),
-            BackgroundTransparency = 0
-        }, Animations.Normal, Animations.Easing.Back):Play()
-        
-        CreateParticleEffect(tab.TabButton, Theme.Accent, 8)
-    end
-    
-    function window:CreateTab(config)
-        config = config or {}
-        local tab = {
-            Name = config.Name or "Tab",
-            Icon = config.Icon or "📁",
-            Elements = {},
-            Window = self
-        }
-        
-        -- Ultra Premium Tab Button
-        local tabButton = Instance.new("TextButton")
-        tabButton.Name = tab.Name .. "Tab"
-        tabButton.Size = UDim2.new(1, 0, 0, 45)
-        tabButton.BackgroundColor3 = Theme.Background
-        tabButton.BorderSizePixel = 0
-        tabButton.Text = ""
-        tabButton.LayoutOrder = #self.Tabs + 1
-        tabButton.ZIndex = 5
-        tabButton.Parent = self.TabNavigation
-        
-        local tabCorner = Instance.new("UICorner")
-        tabCorner.CornerRadius = UDim.new(0, 12)
-        tabCorner.Parent = tabButton
-        
-        local tabStroke = Instance.new("UIStroke")
-        tabStroke.Color = Theme.Border
-        tabStroke.Thickness = 1
-        tabStroke.Transparency = 0.8
-        tabStroke.Parent = tabButton
-        
-        -- Tab background gradient
-        local tabGradient = CreateGradient(tabButton, {
-            ColorSequenceKeypoint.new(0, Theme.Background),
-            ColorSequenceKeypoint.new(1, Theme.Surface)
-        }, 90, {0.1, 0.3})
-        
-        -- Tab Icon
+-- Tab Icon
         local tabIcon = Instance.new("TextLabel")
-        tabIcon.Name = "TabIcon"
         tabIcon.Size = UDim2.new(0, 24, 0, 24)
         tabIcon.Position = UDim2.new(0, 12, 0.5, -12)
         tabIcon.BackgroundTransparency = 1
@@ -976,7 +14,6 @@ function Library:CreateWindow(config)
         
         -- Tab Text
         local tabText = Instance.new("TextLabel")
-        tabText.Name = "TabText"
         tabText.Size = UDim2.new(1, -50, 1, 0)
         tabText.Position = UDim2.new(0, 45, 0, 0)
         tabText.BackgroundTransparency = 1
@@ -991,7 +28,6 @@ function Library:CreateWindow(config)
         
         -- Tab Indicator
         local tabIndicator = Instance.new("Frame")
-        tabIndicator.Name = "TabIndicator"
         tabIndicator.Size = UDim2.new(0, 4, 0, 0)
         tabIndicator.Position = UDim2.new(0, 0, 0.5, 0)
         tabIndicator.AnchorPoint = Vector2.new(0, 0.5)
@@ -1004,14 +40,8 @@ function Library:CreateWindow(config)
         indicatorCorner.CornerRadius = UDim.new(0, 2)
         indicatorCorner.Parent = tabIndicator
         
-        local indicatorGradient = CreateGradient(tabIndicator, {
-            ColorSequenceKeypoint.new(0, Theme.Primary),
-            ColorSequenceKeypoint.new(1, Theme.Accent)
-        }, 90)
-        
-        -- Content area for this tab
+        -- Content Scroll
         local contentScroll = Instance.new("ScrollingFrame")
-        contentScroll.Name = tab.Name .. "Content"
         contentScroll.Size = UDim2.new(1, -30, 1, -30)
         contentScroll.Position = UDim2.new(0, 15, 0, 15)
         contentScroll.BackgroundTransparency = 1
@@ -1028,49 +58,41 @@ function Library:CreateWindow(config)
         contentLayout.Padding = UDim.new(0, 12)
         contentLayout.Parent = contentScroll
         
-        -- Store tab components
         tab.TabButton = tabButton
         tab.TabIcon = tabIcon
         tab.TabText = tabText
         tab.TabIndicator = tabIndicator
         tab.ContentScroll = contentScroll
-        tab.ContentLayout = contentLayout
         
-        -- Enhanced hover effects
+        -- Tab hover effects
         tabButton.MouseEnter:Connect(function()
             if self.CurrentTab ~= tab then
-                PlaySound("electronicpingshort.wav", 0.1, 2.5)
-                CreateTween(tabButton, {BackgroundColor3 = Theme.Hover}, Animations.Fast):Play()
-                CreateTween(tabText, {TextColor3 = Theme.Text}, Animations.Fast):Play()
-                CreateTween(tabIcon, {
-                    TextColor3 = Theme.Accent,
-                    Rotation = 15
-                }, Animations.Fast, Animations.Easing.Back):Play()
-                CreateTween(tabStroke, {Transparency = 0.4}, Animations.Fast):Play()
+                PlaySound(0.1, 2.5)
+                CreateTween(tabButton, {BackgroundColor3 = Theme.Hover}, 0.15):Play()
+                CreateTween(tabText, {TextColor3 = Theme.Text}, 0.15):Play()
+                CreateTween(tabIcon, {TextColor3 = Theme.Accent, Rotation = 15}, 0.15, Enum.EasingStyle.Back):Play()
+                CreateTween(tabStroke, {Transparency = 0.4}, 0.15):Play()
                 CreateParticleEffect(tabButton, Theme.Accent, 3)
             end
         end)
         
         tabButton.MouseLeave:Connect(function()
             if self.CurrentTab ~= tab then
-                CreateTween(tabButton, {BackgroundColor3 = Theme.Background}, Animations.Fast):Play()
-                CreateTween(tabText, {TextColor3 = Theme.TextDim}, Animations.Fast):Play()
-                CreateTween(tabIcon, {
-                    TextColor3 = Theme.TextDim,
-                    Rotation = 0
-                }, Animations.Fast):Play()
-                CreateTween(tabStroke, {Transparency = 0.8}, Animations.Fast):Play()
+                CreateTween(tabButton, {BackgroundColor3 = Theme.Background}, 0.15):Play()
+                CreateTween(tabText, {TextColor3 = Theme.TextDim}, 0.15):Play()
+                CreateTween(tabIcon, {TextColor3 = Theme.TextDim, Rotation = 0}, 0.15):Play()
+                CreateTween(tabStroke, {Transparency = 0.8}, 0.15):Play()
             end
         end)
         
         -- Tab selection
         tabButton.MouseButton1Click:Connect(function()
             UltraRippleEffect(tabButton, Theme.Gold)
-            CreateTween(tabIcon, {Rotation = tabIcon.Rotation + 360}, 0.5, Animations.Easing.Back):Play()
+            CreateTween(tabIcon, {Rotation = tabIcon.Rotation + 360}, 0.5, Enum.EasingStyle.Back):Play()
             self:SelectTab(tab)
         end)
         
-        -- Tab methods for creating elements
+        -- Tab methods
         function tab:UpdateCanvasSize()
             local totalHeight = 0
             for _, element in pairs(self.Elements) do
@@ -1083,14 +105,12 @@ function Library:CreateWindow(config)
         
         function tab:CreateSection(name)
             local sectionContainer = Instance.new("Frame")
-            sectionContainer.Name = name .. "Section"
             sectionContainer.Size = UDim2.new(1, 0, 0, 40)
             sectionContainer.BackgroundTransparency = 1
             sectionContainer.LayoutOrder = #self.Elements + 1
             sectionContainer.ZIndex = 5
             sectionContainer.Parent = self.ContentScroll
             
-            -- Section line with glow
             local sectionLine = Instance.new("Frame")
             sectionLine.Size = UDim2.new(0, 4, 0, 25)
             sectionLine.Position = UDim2.new(0, 0, 0, 7)
@@ -1108,7 +128,6 @@ function Library:CreateWindow(config)
                 ColorSequenceKeypoint.new(1, Theme.Accent)
             }, 90)
             
-            -- Section text with premium styling
             local sectionText = Instance.new("TextLabel")
             sectionText.Size = UDim2.new(1, -20, 1, 0)
             sectionText.Position = UDim2.new(0, 20, 0, 0)
@@ -1122,15 +141,6 @@ function Library:CreateWindow(config)
             sectionText.ZIndex = 6
             sectionText.Parent = sectionContainer
             
-            -- Section text glow
-            local sectionTextGlow = sectionText:Clone()
-            sectionTextGlow.Name = "SectionTextGlow"
-            sectionTextGlow.TextColor3 = Theme.Accent
-            sectionTextGlow.TextTransparency = 0.8
-            sectionTextGlow.Position = UDim2.new(0, 22, 0, 2)
-            sectionTextGlow.ZIndex = 5
-            sectionTextGlow.Parent = sectionContainer
-            
             table.insert(self.Elements, sectionContainer)
             self:UpdateCanvasSize()
             return sectionContainer
@@ -1141,11 +151,11 @@ function Library:CreateWindow(config)
             local toggle = {
                 Name = config.Name or "Toggle",
                 Default = config.Default or false,
-                Callback = config.Callback or function() end
+                Callback = config.Callback or function() end,
+                Value = config.Default or false
             }
             
             local toggleContainer = Instance.new("Frame")
-            toggleContainer.Name = toggle.Name .. "Container"
             toggleContainer.Size = UDim2.new(1, 0, 0, 50)
             toggleContainer.BackgroundColor3 = Theme.Surface
             toggleContainer.BorderSizePixel = 0
@@ -1163,13 +173,7 @@ function Library:CreateWindow(config)
             containerStroke.Transparency = 0.7
             containerStroke.Parent = toggleContainer
             
-            -- Container background gradient
-            local containerGradient = CreateGradient(toggleContainer, {
-                ColorSequenceKeypoint.new(0, Theme.Surface),
-                ColorSequenceKeypoint.new(1, Theme.Background)
-            }, 45, {0.1, 0.3})
-            
-            -- Ultra Premium Toggle Switch
+            -- Toggle Switch
             local toggleSwitch = Instance.new("Frame")
             toggleSwitch.Size = UDim2.new(0, 60, 0, 28)
             toggleSwitch.Position = UDim2.new(1, -70, 0.5, -14)
@@ -1188,12 +192,7 @@ function Library:CreateWindow(config)
             switchStroke.Transparency = 0.5
             switchStroke.Parent = toggleSwitch
             
-            local switchGradient = CreateGradient(toggleSwitch, {
-                ColorSequenceKeypoint.new(0, toggle.Default and Theme.Primary or Theme.Border),
-                ColorSequenceKeypoint.new(1, toggle.Default and Theme.Secondary or Theme.Surface)
-            }, 90)
-            
-            -- Toggle Knob with premium styling
+            -- Toggle Knob
             local toggleKnob = Instance.new("Frame")
             toggleKnob.Size = UDim2.new(0, 22, 0, 22)
             toggleKnob.Position = toggle.Default and UDim2.new(1, -25, 0.5, -11) or UDim2.new(0, 3, 0.5, -11)
@@ -1212,12 +211,7 @@ function Library:CreateWindow(config)
             knobStroke.Transparency = 0.8
             knobStroke.Parent = toggleKnob
             
-            -- Knob glow effect
-            if Settings.GlowEffects then
-                CreateGlow(toggleKnob, Theme.Accent, 10, 0.6)
-            end
-            
-            -- Toggle label with premium typography
+            -- Toggle Label
             local toggleLabel = Instance.new("TextLabel")
             toggleLabel.Size = UDim2.new(1, -80, 1, 0)
             toggleLabel.Position = UDim2.new(0, 15, 0, 0)
@@ -1231,8 +225,6 @@ function Library:CreateWindow(config)
             toggleLabel.ZIndex = 6
             toggleLabel.Parent = toggleContainer
             
-            toggle.Value = toggle.Default
-            
             local toggleButton = Instance.new("TextButton")
             toggleButton.Size = UDim2.new(1, 0, 1, 0)
             toggleButton.BackgroundTransparency = 1
@@ -1240,11 +232,11 @@ function Library:CreateWindow(config)
             toggleButton.ZIndex = 8
             toggleButton.Parent = toggleContainer
             
-            -- Toggle functionality with premium effects
+            -- Toggle functionality
             toggleButton.MouseButton1Click:Connect(function()
                 toggle.Value = not toggle.Value
                 
-                PlaySound("electronicpingshort.wav", 0.4, toggle.Value and 1.5 or 0.8)
+                PlaySound(0.4, toggle.Value and 1.5 or 0.8)
                 UltraRippleEffect(toggleSwitch, toggle.Value and Theme.Gold or Theme.TextDim)
                 CreateParticleEffect(toggleSwitch, toggle.Value and Theme.Accent or Theme.Border, 5)
                 
@@ -1252,32 +244,32 @@ function Library:CreateWindow(config)
                 local strokeColor = toggle.Value and Theme.Accent or Theme.Border
                 local knobPosition = toggle.Value and UDim2.new(1, -25, 0.5, -11) or UDim2.new(0, 3, 0.5, -11)
                 
-                CreateTween(toggleSwitch, {BackgroundColor3 = switchColor}, Animations.Normal, Animations.Easing.Back):Play()
-                CreateTween(switchStroke, {Color = strokeColor}, Animations.Normal):Play()
-                CreateTween(toggleKnob, {Position = knobPosition}, Animations.Normal, Animations.Easing.Back):Play()
+                CreateTween(toggleSwitch, {BackgroundColor3 = switchColor}, 0.3, Enum.EasingStyle.Back):Play()
+                CreateTween(switchStroke, {Color = strokeColor}, 0.3):Play()
+                CreateTween(toggleKnob, {Position = knobPosition}, 0.3, Enum.EasingStyle.Back):Play()
                 
                 if toggle.Value then
-                    CreateTween(toggleKnob, {Size = UDim2.new(0, 26, 0, 26)}, Animations.Fast):Play()
+                    CreateTween(toggleKnob, {Size = UDim2.new(0, 26, 0, 26)}, 0.15):Play()
                     wait(0.1)
-                    CreateTween(toggleKnob, {Size = UDim2.new(0, 22, 0, 22)}, Animations.Fast):Play()
+                    CreateTween(toggleKnob, {Size = UDim2.new(0, 22, 0, 22)}, 0.15):Play()
                 end
                 
                 toggle.Callback(toggle.Value)
             end)
             
-            -- Enhanced hover effects
+            -- Hover effects
             toggleButton.MouseEnter:Connect(function()
-                PlaySound("electronicpingshort.wav", 0.1, 2.8)
-                CreateTween(toggleContainer, {BackgroundColor3 = Theme.SurfaceElevated}, Animations.Fast):Play()
-                CreateTween(containerStroke, {Transparency = 0.4, Thickness = 2}, Animations.Fast):Play()
-                CreateTween(toggleKnob, {Size = UDim2.new(0, 24, 0, 24)}, Animations.Fast):Play()
+                PlaySound(0.1, 2.8)
+                CreateTween(toggleContainer, {BackgroundColor3 = Theme.SurfaceElevated}, 0.15):Play()
+                CreateTween(containerStroke, {Transparency = 0.4, Thickness = 2}, 0.15):Play()
+                CreateTween(toggleKnob, {Size = UDim2.new(0, 24, 0, 24)}, 0.15):Play()
                 CreateParticleEffect(toggleContainer, Theme.Accent, 3)
             end)
             
             toggleButton.MouseLeave:Connect(function()
-                CreateTween(toggleContainer, {BackgroundColor3 = Theme.Surface}, Animations.Fast):Play()
-                CreateTween(containerStroke, {Transparency = 0.7, Thickness = 1}, Animations.Fast):Play()
-                CreateTween(toggleKnob, {Size = UDim2.new(0, 22, 0, 22)}, Animations.Fast):Play()
+                CreateTween(toggleContainer, {BackgroundColor3 = Theme.Surface}, 0.15):Play()
+                CreateTween(containerStroke, {Transparency = 0.7, Thickness = 1}, 0.15):Play()
+                CreateTween(toggleKnob, {Size = UDim2.new(0, 22, 0, 22)}, 0.15):Play()
             end)
             
             table.insert(self.Elements, toggleContainer)
@@ -1292,11 +284,11 @@ function Library:CreateWindow(config)
                 Min = config.Min or 0,
                 Max = config.Max or 100,
                 Default = config.Default or 50,
-                Callback = config.Callback or function() end
+                Callback = config.Callback or function() end,
+                Value = config.Default or 50
             }
             
             local sliderContainer = Instance.new("Frame")
-            sliderContainer.Name = slider.Name .. "Container"
             sliderContainer.Size = UDim2.new(1, 0, 0, 65)
             sliderContainer.BackgroundColor3 = Theme.Surface
             sliderContainer.BorderSizePixel = 0
@@ -1314,12 +306,7 @@ function Library:CreateWindow(config)
             containerStroke.Transparency = 0.7
             containerStroke.Parent = sliderContainer
             
-            local containerGradient = CreateGradient(sliderContainer, {
-                ColorSequenceKeypoint.new(0, Theme.Surface),
-                ColorSequenceKeypoint.new(1, Theme.Background)
-            }, 45, {0.1, 0.3})
-            
-            -- Slider label
+            -- Slider Label
             local sliderLabel = Instance.new("TextLabel")
             sliderLabel.Size = UDim2.new(1, -100, 0, 25)
             sliderLabel.Position = UDim2.new(0, 15, 0, 8)
@@ -1333,7 +320,7 @@ function Library:CreateWindow(config)
             sliderLabel.ZIndex = 6
             sliderLabel.Parent = sliderContainer
             
-            -- Slider value display
+            -- Slider Value
             local sliderValue = Instance.new("TextLabel")
             sliderValue.Size = UDim2.new(0, 80, 0, 25)
             sliderValue.Position = UDim2.new(1, -90, 0, 8)
@@ -1358,7 +345,7 @@ function Library:CreateWindow(config)
             valueStroke.Transparency = 0.6
             valueStroke.Parent = sliderValue
             
-            -- Ultra Premium Slider Track
+            -- Slider Track
             local sliderTrack = Instance.new("Frame")
             sliderTrack.Size = UDim2.new(1, -30, 0, 8)
             sliderTrack.Position = UDim2.new(0, 15, 1, -20)
@@ -1371,16 +358,9 @@ function Library:CreateWindow(config)
             trackCorner.CornerRadius = UDim.new(0, 4)
             trackCorner.Parent = sliderTrack
             
-            local trackStroke = Instance.new("UIStroke")
-            trackStroke.Color = Theme.BorderAccent
-            trackStroke.Thickness = 1
-            trackStroke.Transparency = 0.8
-            trackStroke.Parent = sliderTrack
-            
-            -- Slider Fill with gradient
+            -- Slider Fill
             local sliderFill = Instance.new("Frame")
             sliderFill.Size = UDim2.new((slider.Default - slider.Min) / (slider.Max - slider.Min), 0, 1, 0)
-            sliderFill.Position = UDim2.new(0, 0, 0, 0)
             sliderFill.BackgroundColor3 = Theme.Primary
             sliderFill.BorderSizePixel = 0
             sliderFill.ZIndex = 7
@@ -1396,7 +376,7 @@ function Library:CreateWindow(config)
                 ColorSequenceKeypoint.new(1, Theme.Secondary)
             }, 0)
             
-            -- Premium Slider Knob
+            -- Slider Knob
             local sliderKnob = Instance.new("Frame")
             sliderKnob.Size = UDim2.new(0, 20, 0, 20)
             sliderKnob.Position = UDim2.new((slider.Default - slider.Min) / (slider.Max - slider.Min), -10, 0.5, -10)
@@ -1415,17 +395,6 @@ function Library:CreateWindow(config)
             knobStroke.Transparency = 0.3
             knobStroke.Parent = sliderKnob
             
-            local knobGradient = CreateGradient(sliderKnob, {
-                ColorSequenceKeypoint.new(0, Theme.Text),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(240, 240, 240))
-            }, 45)
-            
-            -- Knob glow
-            if Settings.GlowEffects then
-                CreateGlow(sliderKnob, Theme.Accent, 15, 0.5)
-            end
-            
-            slider.Value = slider.Default
             local dragging = false
             
             local function updateSlider(input)
@@ -1437,18 +406,11 @@ function Library:CreateWindow(config)
                     sliderValue.Text = tostring(newValue)
                     
                     CreateTween(sliderFill, {Size = UDim2.new(relativeX, 0, 1, 0)}, 0.1):Play()
-                    CreateTween(sliderKnob, {Position = UDim2.new(relativeX, -10, 0.5, -10)}, 0.1, Animations.Easing.Back):Play()
+                    CreateTween(sliderKnob, {Position = UDim2.new(relativeX, -10, 0.5, -10)}, 0.1, Enum.EasingStyle.Back):Play()
                     
-                    -- Value change effects
-                    CreateTween(sliderValue, {
-                        TextColor3 = Theme.Gold,
-                        TextSize = 14
-                    }, 0.1):Play()
+                    CreateTween(sliderValue, {TextColor3 = Theme.Gold, TextSize = 14}, 0.1):Play()
                     wait(0.1)
-                    CreateTween(sliderValue, {
-                        TextColor3 = Theme.Accent,
-                        TextSize = 12
-                    }, 0.1):Play()
+                    CreateTween(sliderValue, {TextColor3 = Theme.Accent, TextSize = 12}, 0.1):Play()
                     
                     CreateParticleEffect(sliderKnob, Theme.Accent, 2)
                     slider.Callback(newValue)
@@ -1458,8 +420,8 @@ function Library:CreateWindow(config)
             sliderTrack.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     dragging = true
-                    PlaySound("electronicpingshort.wav", 0.3, 1.8)
-                    CreateTween(sliderKnob, {Size = UDim2.new(0, 24, 0, 24)}, Animations.Fast):Play()
+                    PlaySound(0.3, 1.8)
+                    CreateTween(sliderKnob, {Size = UDim2.new(0, 24, 0, 24)}, 0.15):Play()
                     updateSlider(input)
                 end
             end)
@@ -1473,25 +435,23 @@ function Library:CreateWindow(config)
             UserInputService.InputEnded:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     dragging = false
-                    CreateTween(sliderKnob, {Size = UDim2.new(0, 20, 0, 20)}, Animations.Fast, Animations.Easing.Back):Play()
+                    CreateTween(sliderKnob, {Size = UDim2.new(0, 20, 0, 20)}, 0.15, Enum.EasingStyle.Back):Play()
                 end
             end)
             
-            -- Enhanced hover effects
+            -- Hover effects
             sliderContainer.MouseEnter:Connect(function()
-                PlaySound("electronicpingshort.wav", 0.1, 2.5)
-                CreateTween(sliderContainer, {BackgroundColor3 = Theme.SurfaceElevated}, Animations.Fast):Play()
-                CreateTween(containerStroke, {Transparency = 0.4, Thickness = 2}, Animations.Fast):Play()
-                CreateTween(sliderKnob, {Size = UDim2.new(0, 22, 0, 22)}, Animations.Fast):Play()
-                CreateTween(trackStroke, {Transparency = 0.4}, Animations.Fast):Play()
+                PlaySound(0.1, 2.5)
+                CreateTween(sliderContainer, {BackgroundColor3 = Theme.SurfaceElevated}, 0.15):Play()
+                CreateTween(containerStroke, {Transparency = 0.4, Thickness = 2}, 0.15):Play()
+                CreateTween(sliderKnob, {Size = UDim2.new(0, 22, 0, 22)}, 0.15):Play()
             end)
             
             sliderContainer.MouseLeave:Connect(function()
                 if not dragging then
-                    CreateTween(sliderContainer, {BackgroundColor3 = Theme.Surface}, Animations.Fast):Play()
-                    CreateTween(containerStroke, {Transparency = 0.7, Thickness = 1}, Animations.Fast):Play()
-                    CreateTween(sliderKnob, {Size = UDim2.new(0, 20, 0, 20)}, Animations.Fast):Play()
-                    CreateTween(trackStroke, {Transparency = 0.8}, Animations.Fast):Play()
+                    CreateTween(sliderContainer, {BackgroundColor3 = Theme.Surface}, 0.15):Play()
+                    CreateTween(containerStroke, {Transparency = 0.7, Thickness = 1}, 0.15):Play()
+                    CreateTween(sliderKnob, {Size = UDim2.new(0, 20, 0, 20)}, 0.15):Play()
                 end
             end)
             
@@ -1508,7 +468,6 @@ function Library:CreateWindow(config)
             }
             
             local buttonContainer = Instance.new("TextButton")
-            buttonContainer.Name = button.Name .. "Container"
             buttonContainer.Size = UDim2.new(1, 0, 0, 45)
             buttonContainer.BackgroundColor3 = Theme.Primary
             buttonContainer.BorderSizePixel = 0
@@ -1527,15 +486,12 @@ function Library:CreateWindow(config)
             containerStroke.Transparency = 0.5
             containerStroke.Parent = buttonContainer
             
-            -- Epic button gradient
             local buttonGradient = CreateGradient(buttonContainer, {
                 ColorSequenceKeypoint.new(0, Theme.Primary),
-                ColorSequenceKeypoint.new(0.3, Theme.Secondary),
-                ColorSequenceKeypoint.new(0.7, Theme.Primary),
+                ColorSequenceKeypoint.new(0.5, Theme.Secondary),
                 ColorSequenceKeypoint.new(1, Theme.Accent)
             }, 45)
             
-            -- Button text with premium styling
             local buttonText = Instance.new("TextLabel")
             buttonText.Size = UDim2.new(1, 0, 1, 0)
             buttonText.BackgroundTransparency = 1
@@ -1548,61 +504,46 @@ function Library:CreateWindow(config)
             buttonText.ZIndex = 6
             buttonText.Parent = buttonContainer
             
-            -- Button text glow
-            local buttonTextGlow = buttonText:Clone()
-            buttonTextGlow.Name = "ButtonTextGlow"
-            buttonTextGlow.TextColor3 = Theme.Gold
-            buttonTextGlow.TextTransparency = 0.7
-            buttonTextGlow.Position = UDim2.new(0, 2, 0, 2)
-            buttonTextGlow.ZIndex = 5
-            buttonTextGlow.Parent = buttonContainer
-            
-            -- Button glow effect
-            if Settings.GlowEffects then
-                CreateGlow(buttonContainer, Theme.Primary, 25, 0.4)
-            end
-            
-            -- Button click functionality
+            -- Button click
             buttonContainer.MouseButton1Click:Connect(function()
-                PlaySound("electronicpingshort.wav", 0.6, 1.2)
+                PlaySound(0.6, 1.2)
                 UltraRippleEffect(buttonContainer, Theme.Gold)
                 CreateParticleEffect(buttonContainer, Theme.Gold, 12)
                 
-                -- Epic click animation
                 CreateTween(buttonContainer, {
                     Size = UDim2.new(1, 0, 0, 42),
                     BackgroundColor3 = Theme.Gold
-                }, Animations.Fast):Play()
+                }, 0.15):Play()
                 
                 CreateTween(buttonText, {
                     TextSize = 16,
                     TextColor3 = Theme.Background
-                }, Animations.Fast):Play()
+                }, 0.15):Play()
                 
                 wait(0.15)
                 
                 CreateTween(buttonContainer, {
                     Size = UDim2.new(1, 0, 0, 45),
                     BackgroundColor3 = Theme.Primary
-                }, Animations.Fast, Animations.Easing.Back):Play()
+                }, 0.15, Enum.EasingStyle.Back):Play()
                 
                 CreateTween(buttonText, {
                     TextSize = 14,
                     TextColor3 = Theme.Text
-                }, Animations.Fast):Play()
+                }, 0.15):Play()
                 
                 button.Callback()
             end)
             
-            -- Enhanced hover effects
+            -- Hover effects
             buttonContainer.MouseEnter:Connect(function()
-                PlaySound("electronicpingshort.wav", 0.2, 2.2)
+                PlaySound(0.2, 2.2)
                 CreateTween(buttonContainer, {
                     Size = UDim2.new(1, 0, 0, 48),
                     BackgroundColor3 = Theme.Secondary
-                }, Animations.Fast, Animations.Easing.Back):Play()
-                CreateTween(containerStroke, {Transparency = 0.2, Thickness = 2}, Animations.Fast):Play()
-                CreateTween(buttonText, {TextSize = 15}, Animations.Fast):Play()
+                }, 0.15, Enum.EasingStyle.Back):Play()
+                CreateTween(containerStroke, {Transparency = 0.2, Thickness = 2}, 0.15):Play()
+                CreateTween(buttonText, {TextSize = 15}, 0.15):Play()
                 CreateParticleEffect(buttonContainer, Theme.Accent, 5)
             end)
             
@@ -1610,9 +551,9 @@ function Library:CreateWindow(config)
                 CreateTween(buttonContainer, {
                     Size = UDim2.new(1, 0, 0, 45),
                     BackgroundColor3 = Theme.Primary
-                }, Animations.Fast, Animations.Easing.Back):Play()
-                CreateTween(containerStroke, {Transparency = 0.5, Thickness = 1}, Animations.Fast):Play()
-                CreateTween(buttonText, {TextSize = 14}, Animations.Fast):Play()
+                }, 0.15, Enum.EasingStyle.Back):Play()
+                CreateTween(containerStroke, {Transparency = 0.5, Thickness = 1}, 0.15):Play()
+                CreateTween(buttonText, {TextSize = 14}, 0.15):Play()
             end)
             
             table.insert(self.Elements, buttonContainer)
@@ -1630,25 +571,24 @@ function Library:CreateWindow(config)
         return tab
     end
     
-    -- Create Ultra Premium Settings Tab
+    -- Create Settings Tab
     spawn(function()
         wait(0.1)
-        window.SettingsTab = window:CreateTab({
+        local settingsTab = window:CreateTab({
             Name = "Settings",
             Icon = "⚙️"
         })
         
-        window.SettingsTab:CreateSection("🎮 Control Settings")
+        settingsTab:CreateSection("🎮 Control Settings")
         
-        -- Key binding with premium UI
+        -- Enhanced key binding
         local keyBindFrame = Instance.new("Frame")
-        keyBindFrame.Name = "KeyBindFrame"
         keyBindFrame.Size = UDim2.new(1, 0, 0, 60)
         keyBindFrame.BackgroundColor3 = Theme.Surface
         keyBindFrame.BorderSizePixel = 0
-        keyBindFrame.LayoutOrder = #window.SettingsTab.Elements + 1
+        keyBindFrame.LayoutOrder = #settingsTab.Elements + 1
         keyBindFrame.ZIndex = 5
-        keyBindFrame.Parent = window.SettingsTab.ContentScroll
+        keyBindFrame.Parent = settingsTab.ContentScroll
         
         local keyBindCorner = Instance.new("UICorner")
         keyBindCorner.CornerRadius = UDim.new(0, 12)
@@ -1710,7 +650,7 @@ function Library:CreateWindow(config)
                             keySelectButton.Text = KeyNames[keyCode]
                             waitingForKey = false
                             connection:Disconnect()
-                            PlaySound("electronicpingshort.wav", 0.5, 1.8)
+                            PlaySound(0.5, 1.8)
                             CreateParticleEffect(keySelectButton, Theme.Success, 8)
                         end
                     end
@@ -1727,8 +667,8 @@ function Library:CreateWindow(config)
             end
         end)
         
-        -- Enhanced settings toggles
-        window.SettingsTab:CreateToggle({
+        -- Settings toggles
+        settingsTab:CreateToggle({
             Name = "🌟 Show Float Button",
             Default = Settings.FloatButtonEnabled,
             Callback = function(value)
@@ -1743,7 +683,7 @@ function Library:CreateWindow(config)
             end
         })
         
-        window.SettingsTab:CreateToggle({
+        settingsTab:CreateToggle({
             Name = "🔊 Sound Effects",
             Default = Settings.SoundEnabled,
             Callback = function(value)
@@ -1751,7 +691,7 @@ function Library:CreateWindow(config)
             end
         })
         
-        window.SettingsTab:CreateToggle({
+        settingsTab:CreateToggle({
             Name = "✨ Particle Effects",
             Default = Settings.ParticleEffects,
             Callback = function(value)
@@ -1759,7 +699,7 @@ function Library:CreateWindow(config)
             end
         })
         
-        window.SettingsTab:CreateToggle({
+        settingsTab:CreateToggle({
             Name = "💫 Glow Effects",
             Default = Settings.GlowEffects,
             Callback = function(value)
@@ -1767,25 +707,672 @@ function Library:CreateWindow(config)
             end
         })
         
-        window.SettingsTab:CreateSection("🎨 Visual Settings")
+        settingsTab:CreateSection("🎨 Visual Settings")
         
-        window.SettingsTab:CreateSlider({
-            Name = "🎭 Animation Speed",
-            Min = 1,
-            Max = 10,
-            Default = 5,
+        settingsTab:CreateSlider({
+            Name = "🎭 Float Button Size",
+            Min = 40,
+            Max = 80,
+            Default = 60,
             Callback = function(value)
-                Animations.Normal = value / 10
-                Animations.Fast = (value / 10) * 0.5
-                Animations.Slow = (value / 10) * 1.5
+                Settings.FloatButtonSize = value
+                if window.FloatButton then
+                    CreateTween(window.FloatButton, {
+                        Size = UDim2.new(0, value, 0, value)
+                    }, 0.3):Play()
+                end
             end
         })
         
-        table.insert(window.SettingsTab.Elements, keyBindFrame)
-        window.SettingsTab:UpdateCanvasSize()
+        table.insert(settingsTab.Elements, keyBindFrame)
+        settingsTab:UpdateCanvasSize()
     end)
     
     return window
 end
 
-return Library
+return Library-- Ultra Premium GUI Library v3.0 - Fixed Version -----
+local Library = {}
+Library.__index = Library
+
+-- Services
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Ultra Premium Theme
+local Theme = {
+    Background = Color3.fromRGB(12, 15, 25),
+    Surface = Color3.fromRGB(18, 22, 35),
+    SurfaceElevated = Color3.fromRGB(25, 30, 45),
+    Primary = Color3.fromRGB(139, 69, 255),
+    Secondary = Color3.fromRGB(255, 69, 139),
+    Accent = Color3.fromRGB(0, 255, 195),
+    Gold = Color3.fromRGB(255, 215, 0),
+    Text = Color3.fromRGB(255, 255, 255),
+    TextDim = Color3.fromRGB(180, 185, 200),
+    Success = Color3.fromRGB(72, 187, 120),
+    Warning = Color3.fromRGB(245, 166, 35),
+    Error = Color3.fromRGB(248, 113, 113),
+    Border = Color3.fromRGB(45, 50, 65),
+    BorderAccent = Color3.fromRGB(75, 85, 110),
+    Hover = Color3.fromRGB(30, 35, 50),
+}
+
+-- Settings
+local Settings = {
+    ToggleKey = Enum.KeyCode.Insert,
+    FloatButtonEnabled = true,
+    FloatButtonPosition = {0.95, 0.1},
+    FloatButtonSize = 60,
+    SoundEnabled = true,
+    ParticleEffects = true,
+    GlowEffects = true
+}
+
+-- Key Names
+local KeyNames = {
+    [Enum.KeyCode.Insert] = "Insert", [Enum.KeyCode.Home] = "Home", [Enum.KeyCode.End] = "End",
+    [Enum.KeyCode.F1] = "F1", [Enum.KeyCode.F2] = "F2", [Enum.KeyCode.F3] = "F3", [Enum.KeyCode.F4] = "F4",
+    [Enum.KeyCode.F5] = "F5", [Enum.KeyCode.F6] = "F6", [Enum.KeyCode.F7] = "F7", [Enum.KeyCode.F8] = "F8",
+    [Enum.KeyCode.Tab] = "Tab", [Enum.KeyCode.Minus] = "-", [Enum.KeyCode.Equals] = "="
+}
+
+-- Utility Functions
+local function CreateTween(object, properties, duration, style)
+    duration = duration or 0.3
+    style = style or Enum.EasingStyle.Quad
+    return TweenService:Create(object, TweenInfo.new(duration, style, Enum.EasingDirection.Out), properties)
+end
+
+local function CreateGradient(parent, colors, rotation)
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new(colors)
+    gradient.Rotation = rotation or 0
+    gradient.Parent = parent
+    return gradient
+end
+
+local function PlaySound(volume, pitch)
+    if not Settings.SoundEnabled then return end
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxasset://sounds/electronicpingshort.wav"
+    sound.Volume = volume or 0.5
+    sound.Pitch = pitch or 1
+    sound.Parent = SoundService
+    sound:Play()
+    spawn(function()
+        wait(2)
+        sound:Destroy()
+    end)
+end
+
+local function UltraRippleEffect(button, color)
+    PlaySound(0.3, 1.2)
+    
+    for i = 1, 2 do
+        spawn(function()
+            wait((i-1) * 0.1)
+            
+            local ripple = Instance.new("Frame")
+            ripple.Size = UDim2.new(0, 0, 0, 0)
+            ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+            ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+            ripple.BackgroundColor3 = color or Theme.Accent
+            ripple.BackgroundTransparency = 0.3
+            ripple.BorderSizePixel = 0
+            ripple.ZIndex = button.ZIndex + 10
+            ripple.Parent = button
+            
+            local rippleCorner = Instance.new("UICorner")
+            rippleCorner.CornerRadius = UDim.new(1, 0)
+            rippleCorner.Parent = ripple
+            
+            local maxSize = math.max(button.AbsoluteSize.X, button.AbsoluteSize.Y) * 2.5
+            local expandTween = CreateTween(ripple, {
+                Size = UDim2.new(0, maxSize, 0, maxSize),
+                BackgroundTransparency = 1
+            }, 0.6, Enum.EasingStyle.Exponential)
+            
+            expandTween:Play()
+            expandTween.Completed:Connect(function()
+                ripple:Destroy()
+            end)
+        end)
+    end
+end
+
+local function CreateParticleEffect(parent, color, count)
+    if not Settings.ParticleEffects then return end
+    
+    for i = 1, count or 5 do
+        spawn(function()
+            wait(math.random() * 0.3)
+            
+            local particle = Instance.new("Frame")
+            particle.Size = UDim2.new(0, math.random(2, 4), 0, math.random(2, 4))
+            particle.Position = UDim2.new(math.random(), 0, math.random(), 0)
+            particle.BackgroundColor3 = color or Theme.Accent
+            particle.BackgroundTransparency = 0.5
+            particle.BorderSizePixel = 0
+            particle.ZIndex = parent.ZIndex + 5
+            particle.Parent = parent
+            
+            local particleCorner = Instance.new("UICorner")
+            particleCorner.CornerRadius = UDim.new(1, 0)
+            particleCorner.Parent = particle
+            
+            local floatTween = CreateTween(particle, {
+                Position = UDim2.new(math.random(), 0, -0.2, 0),
+                BackgroundTransparency = 1,
+                Rotation = math.random(-180, 180)
+            }, math.random(1, 2), Enum.EasingStyle.Exponential)
+            
+            floatTween:Play()
+            floatTween.Completed:Connect(function()
+                particle:Destroy()
+            end)
+        end)
+    end
+end
+
+-- Ultra Premium Float Button
+local function CreateUltraPremiumFloatButton(window)
+    local floatGui = Instance.new("ScreenGui")
+    floatGui.Name = "UltraPremiumFloat_" .. math.random(1000, 9999)
+    floatGui.Parent = playerGui
+    floatGui.ResetOnSpawn = false
+    floatGui.IgnoreGuiInset = true
+    floatGui.DisplayOrder = 1000
+    
+    local floatButton = Instance.new("TextButton")
+    floatButton.Name = "FloatButton"
+    floatButton.Size = UDim2.new(0, Settings.FloatButtonSize, 0, Settings.FloatButtonSize)
+    floatButton.Position = UDim2.new(Settings.FloatButtonPosition[1], -Settings.FloatButtonSize/2, Settings.FloatButtonPosition[2], -Settings.FloatButtonSize/2)
+    floatButton.BackgroundColor3 = Theme.Background
+    floatButton.BackgroundTransparency = 0.1
+    floatButton.BorderSizePixel = 0
+    floatButton.Text = ""
+    floatButton.ZIndex = 10
+    floatButton.Parent = floatGui
+    
+    local floatCorner = Instance.new("UICorner")
+    floatCorner.CornerRadius = UDim.new(1, 0)
+    floatCorner.Parent = floatButton
+    
+    local floatGradient = CreateGradient(floatButton, {
+        ColorSequenceKeypoint.new(0, Theme.Primary),
+        ColorSequenceKeypoint.new(0.5, Theme.Secondary),
+        ColorSequenceKeypoint.new(1, Theme.Accent)
+    }, 45)
+    
+    local outerStroke = Instance.new("UIStroke")
+    outerStroke.Color = Theme.Accent
+    outerStroke.Thickness = 3
+    outerStroke.Transparency = 0.3
+    outerStroke.Parent = floatButton
+    
+    local iconContainer = Instance.new("Frame")
+    iconContainer.Size = UDim2.new(0.6, 0, 0.6, 0)
+    iconContainer.Position = UDim2.new(0.2, 0, 0.2, 0)
+    iconContainer.BackgroundTransparency = 1
+    iconContainer.ZIndex = 11
+    iconContainer.Parent = floatButton
+    
+    local icon = Instance.new("TextLabel")
+    icon.Size = UDim2.new(1, 0, 1, 0)
+    icon.BackgroundTransparency = 1
+    icon.Text = "⚡"
+    icon.TextColor3 = Theme.Text
+    icon.TextSize = Settings.FloatButtonSize * 0.4
+    icon.Font = Enum.Font.GothamBold
+    icon.TextXAlignment = Enum.TextXAlignment.Center
+    icon.TextYAlignment = Enum.TextYAlignment.Center
+    icon.ZIndex = 12
+    icon.Parent = iconContainer
+    
+    -- Breathing animation
+    local function startBreathing()
+        local breathe1 = CreateTween(floatButton, {
+            Size = UDim2.new(0, Settings.FloatButtonSize + 8, 0, Settings.FloatButtonSize + 8)
+        }, 2, Enum.EasingStyle.Sine)
+        
+        breathe1:Play()
+        breathe1.Completed:Connect(function()
+            local breathe2 = CreateTween(floatButton, {
+                Size = UDim2.new(0, Settings.FloatButtonSize, 0, Settings.FloatButtonSize)
+            }, 2, Enum.EasingStyle.Sine)
+            
+            breathe2:Play()
+            breathe2.Completed:Connect(function()
+                if floatButton.Parent then
+                    startBreathing()
+                end
+            end)
+        end)
+    end
+    startBreathing()
+    
+    -- Hover effects
+    floatButton.MouseEnter:Connect(function()
+        PlaySound(0.2, 1.5)
+        CreateTween(floatButton, {
+            Size = UDim2.new(0, Settings.FloatButtonSize + 15, 0, Settings.FloatButtonSize + 15)
+        }, 0.15, Enum.EasingStyle.Back):Play()
+        CreateTween(outerStroke, {Transparency = 0.1, Thickness = 5}, 0.15):Play()
+        CreateParticleEffect(floatButton, Theme.Accent, 6)
+    end)
+    
+    floatButton.MouseLeave:Connect(function()
+        CreateTween(floatButton, {
+            Size = UDim2.new(0, Settings.FloatButtonSize, 0, Settings.FloatButtonSize)
+        }, 0.15, Enum.EasingStyle.Back):Play()
+        CreateTween(outerStroke, {Transparency = 0.3, Thickness = 3}, 0.15):Play()
+    end)
+    
+    floatButton.MouseButton1Click:Connect(function()
+        UltraRippleEffect(floatButton, Theme.Gold)
+        CreateTween(iconContainer, {Rotation = iconContainer.Rotation + 360}, 0.5, Enum.EasingStyle.Back):Play()
+        window.ScreenGui.Enabled = not window.ScreenGui.Enabled
+    end)
+    
+    -- Dragging
+    local floatDragging = false
+    local floatDragStart = nil
+    local floatStartPos = nil
+    
+    floatButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            floatDragging = true
+            floatDragStart = input.Position
+            floatStartPos = floatButton.Position
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and floatDragging then
+            local delta = input.Position - floatDragStart
+            floatButton.Position = UDim2.new(0, floatStartPos.X.Offset + delta.X, 0, floatStartPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            floatDragging = false
+        end
+    end)
+    
+    window.FloatGui = floatGui
+    window.FloatButton = floatButton
+    
+    -- Visibility management
+    local function updateFloatButtonVisibility()
+        if window.ScreenGui.Enabled then
+            floatButton.Visible = false
+        else
+            floatButton.Visible = Settings.FloatButtonEnabled
+        end
+    end
+    
+    window.ScreenGui:GetPropertyChangedSignal("Enabled"):Connect(updateFloatButtonVisibility)
+    updateFloatButtonVisibility()
+end
+
+-- Main Library Function
+function Library:CreateWindow(config)
+    config = config or {}
+    local window = {
+        Title = config.Title or "Ultra Premium GUI",
+        Size = config.Size or {800, 600},
+        Tabs = {},
+        CurrentTab = nil
+    }
+    
+    -- Create ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "UltraPremiumGUI_" .. math.random(1000, 9999)
+    screenGui.Parent = playerGui
+    screenGui.ResetOnSpawn = false
+    screenGui.IgnoreGuiInset = true
+    screenGui.DisplayOrder = 999
+    
+    -- Background
+    local backgroundBlur = Instance.new("Frame")
+    backgroundBlur.Size = UDim2.new(1, 0, 1, 0)
+    backgroundBlur.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    backgroundBlur.BackgroundTransparency = 0.2
+    backgroundBlur.BorderSizePixel = 0
+    backgroundBlur.ZIndex = 1
+    backgroundBlur.Parent = screenGui
+    
+    -- Main Container
+    local mainContainer = Instance.new("Frame")
+    mainContainer.Size = UDim2.new(0, window.Size[1], 0, window.Size[2])
+    mainContainer.Position = UDim2.new(0.5, -window.Size[1]/2, 0.5, -window.Size[2]/2)
+    mainContainer.BackgroundColor3 = Theme.Background
+    mainContainer.BorderSizePixel = 0
+    mainContainer.ZIndex = 2
+    mainContainer.Parent = screenGui
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 20)
+    mainCorner.Parent = mainContainer
+    
+    local mainStroke = Instance.new("UIStroke")
+    mainStroke.Thickness = 2
+    mainStroke.Transparency = 0.5
+    mainStroke.Parent = mainContainer
+    
+    local borderGradient = CreateGradient(mainStroke, {
+        ColorSequenceKeypoint.new(0, Theme.Primary),
+        ColorSequenceKeypoint.new(0.5, Theme.Accent),
+        ColorSequenceKeypoint.new(1, Theme.Secondary)
+    }, 0)
+    
+    -- Title Bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 60)
+    titleBar.BackgroundColor3 = Theme.Surface
+    titleBar.BorderSizePixel = 0
+    titleBar.ZIndex = 3
+    titleBar.Parent = mainContainer
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 20)
+    titleCorner.Parent = titleBar
+    
+    local titleGradient = CreateGradient(titleBar, {
+        ColorSequenceKeypoint.new(0, Theme.Primary),
+        ColorSequenceKeypoint.new(0.5, Theme.Background),
+        ColorSequenceKeypoint.new(1, Theme.Secondary)
+    }, 90)
+    
+    -- Logo
+    local logoContainer = Instance.new("Frame")
+    logoContainer.Size = UDim2.new(0, 40, 0, 40)
+    logoContainer.Position = UDim2.new(0, 15, 0, 10)
+    logoContainer.BackgroundColor3 = Theme.Accent
+    logoContainer.BorderSizePixel = 0
+    logoContainer.ZIndex = 4
+    logoContainer.Parent = titleBar
+    
+    local logoCorner = Instance.new("UICorner")
+    logoCorner.CornerRadius = UDim.new(0, 8)
+    logoCorner.Parent = logoContainer
+    
+    local logoGradient = CreateGradient(logoContainer, {
+        ColorSequenceKeypoint.new(0, Theme.Gold),
+        ColorSequenceKeypoint.new(1, Theme.Accent)
+    }, 45)
+    
+    local logo = Instance.new("TextLabel")
+    logo.Size = UDim2.new(1, 0, 1, 0)
+    logo.BackgroundTransparency = 1
+    logo.Text = "⚡"
+    logo.TextColor3 = Theme.Text
+    logo.TextSize = 20
+    logo.Font = Enum.Font.GothamBold
+    logo.TextXAlignment = Enum.TextXAlignment.Center
+    logo.TextYAlignment = Enum.TextYAlignment.Center
+    logo.ZIndex = 5
+    logo.Parent = logoContainer
+    
+    -- Title Text
+    local titleText = Instance.new("TextLabel")
+    titleText.Size = UDim2.new(1, -200, 1, 0)
+    titleText.Position = UDim2.new(0, 65, 0, 0)
+    titleText.BackgroundTransparency = 1
+    titleText.Text = window.Title
+    titleText.TextColor3 = Theme.Text
+    titleText.TextSize = 20
+    titleText.Font = Enum.Font.GothamBold
+    titleText.TextXAlignment = Enum.TextXAlignment.Left
+    titleText.TextYAlignment = Enum.TextYAlignment.Center
+    titleText.ZIndex = 4
+    titleText.Parent = titleBar
+    
+    -- Control Buttons
+    local controlsContainer = Instance.new("Frame")
+    controlsContainer.Size = UDim2.new(0, 150, 0, 40)
+    controlsContainer.Position = UDim2.new(1, -160, 0, 10)
+    controlsContainer.BackgroundTransparency = 1
+    controlsContainer.ZIndex = 4
+    controlsContainer.Parent = titleBar
+    
+    local controlsLayout = Instance.new("UIListLayout")
+    controlsLayout.FillDirection = Enum.FillDirection.Horizontal
+    controlsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    controlsLayout.Padding = UDim.new(0, 8)
+    controlsLayout.Parent = controlsContainer
+    
+    local function createControlButton(icon, color, callback)
+        local button = Instance.new("TextButton")
+        button.Size = UDim2.new(0, 35, 0, 35)
+        button.BackgroundColor3 = color
+        button.BorderSizePixel = 0
+        button.Text = icon
+        button.TextColor3 = Theme.Text
+        button.TextSize = 14
+        button.Font = Enum.Font.GothamBold
+        button.ZIndex = 5
+        button.Parent = controlsContainer
+        
+        local buttonCorner = Instance.new("UICorner")
+        buttonCorner.CornerRadius = UDim.new(0, 8)
+        buttonCorner.Parent = button
+        
+        button.MouseEnter:Connect(function()
+            PlaySound(0.1, 2)
+            CreateTween(button, {Size = UDim2.new(0, 38, 0, 38)}, 0.15, Enum.EasingStyle.Back):Play()
+            CreateParticleEffect(button, color, 3)
+        end)
+        
+        button.MouseLeave:Connect(function()
+            CreateTween(button, {Size = UDim2.new(0, 35, 0, 35)}, 0.15, Enum.EasingStyle.Back):Play()
+        end)
+        
+        button.MouseButton1Click:Connect(function()
+            UltraRippleEffect(button, Theme.Gold)
+            callback()
+        end)
+        
+        return button
+    end
+    
+    local closeButton = createControlButton("✕", Theme.Error, function()
+        CreateParticleEffect(mainContainer, Theme.Error, 15)
+        PlaySound(0.8, 0.5)
+        local closeTween = CreateTween(mainContainer, {
+            Size = UDim2.new(0, 0, 0, 0),
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            Rotation = 360
+        }, 0.8, Enum.EasingStyle.Back)
+        CreateTween(backgroundBlur, {BackgroundTransparency = 1}, 0.8):Play()
+        closeTween:Play()
+        closeTween.Completed:Connect(function()
+            screenGui:Destroy()
+            if window.FloatGui then
+                window.FloatGui:Destroy()
+            end
+        end)
+    end)
+    
+    -- Sidebar
+    local sidebarContainer = Instance.new("Frame")
+    sidebarContainer.Size = UDim2.new(0, 180, 1, -75)
+    sidebarContainer.Position = UDim2.new(0, 15, 0, 70)
+    sidebarContainer.BackgroundColor3 = Theme.Surface
+    sidebarContainer.BorderSizePixel = 0
+    sidebarContainer.ZIndex = 3
+    sidebarContainer.Parent = mainContainer
+    
+    local sidebarCorner = Instance.new("UICorner")
+    sidebarCorner.CornerRadius = UDim.new(0, 15)
+    sidebarCorner.Parent = sidebarContainer
+    
+    local sidebarStroke = Instance.new("UIStroke")
+    sidebarStroke.Color = Theme.BorderAccent
+    sidebarStroke.Thickness = 1
+    sidebarStroke.Transparency = 0.6
+    sidebarStroke.Parent = sidebarContainer
+    
+    local tabNavigation = Instance.new("ScrollingFrame")
+    tabNavigation.Size = UDim2.new(1, -20, 1, -20)
+    tabNavigation.Position = UDim2.new(0, 10, 0, 10)
+    tabNavigation.BackgroundTransparency = 1
+    tabNavigation.BorderSizePixel = 0
+    tabNavigation.ScrollBarThickness = 4
+    tabNavigation.ScrollBarImageColor3 = Theme.Accent
+    tabNavigation.ScrollBarImageTransparency = 0.7
+    tabNavigation.ZIndex = 4
+    tabNavigation.Parent = sidebarContainer
+    
+    local tabLayout = Instance.new("UIListLayout")
+    tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    tabLayout.Padding = UDim.new(0, 8)
+    tabLayout.Parent = tabNavigation
+    
+    local tabPadding = Instance.new("UIPadding")
+    tabPadding.PaddingTop = UDim.new(0, 10)
+    tabPadding.PaddingLeft = UDim.new(0, 5)
+    tabPadding.PaddingRight = UDim.new(0, 5)
+    tabPadding.PaddingBottom = UDim.new(0, 10)
+    tabPadding.Parent = tabNavigation
+    
+    -- Content Area
+    local contentArea = Instance.new("Frame")
+    contentArea.Size = UDim2.new(1, -220, 1, -75)
+    contentArea.Position = UDim2.new(0, 205, 0, 70)
+    contentArea.BackgroundColor3 = Theme.SurfaceElevated
+    contentArea.BorderSizePixel = 0
+    contentArea.ZIndex = 3
+    contentArea.Parent = mainContainer
+    
+    local contentCorner = Instance.new("UICorner")
+    contentCorner.CornerRadius = UDim.new(0, 15)
+    contentCorner.Parent = contentArea
+    
+    local contentStroke = Instance.new("UIStroke")
+    contentStroke.Color = Theme.BorderAccent
+    contentStroke.Thickness = 1
+    contentStroke.Transparency = 0.6
+    contentStroke.Parent = contentArea
+    
+    -- Store references
+    window.ScreenGui = screenGui
+    window.MainContainer = mainContainer
+    window.TabNavigation = tabNavigation
+    window.ContentArea = contentArea
+    
+    -- Create Float Button
+    CreateUltraPremiumFloatButton(window)
+    
+    -- Dragging
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+    
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainContainer.Position
+            PlaySound(0.1, 1.8)
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+            local delta = input.Position - dragStart
+            mainContainer.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    -- Toggle functionality
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.KeyCode == Settings.ToggleKey then
+            if screenGui.Enabled then
+                CreateTween(mainContainer, {
+                    Size = UDim2.new(0, 0, 0, 0),
+                    Position = UDim2.new(0.5, 0, 0.5, 0),
+                    Rotation = -90
+                }, 0.3, Enum.EasingStyle.Back):Play()
+                CreateTween(backgroundBlur, {BackgroundTransparency = 1}, 0.3):Play()
+                wait(0.3)
+                screenGui.Enabled = false
+            else
+                screenGui.Enabled = true
+                mainContainer.Size = UDim2.new(0, 0, 0, 0)
+                mainContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
+                mainContainer.Rotation = 90
+                CreateTween(backgroundBlur, {BackgroundTransparency = 0.2}, 0.3):Play()
+                CreateTween(mainContainer, {
+                    Size = UDim2.new(0, window.Size[1], 0, window.Size[2]),
+                    Position = UDim2.new(0.5, -window.Size[1]/2, 0.5, -window.Size[2]/2),
+                    Rotation = 0
+                }, 0.3, Enum.EasingStyle.Back):Play()
+                CreateParticleEffect(mainContainer, Theme.Accent, 15)
+            end
+        end
+    end)
+    
+    -- Window methods
+    function window:SelectTab(tab)
+        if self.CurrentTab then
+            CreateTween(self.CurrentTab.TabButton, {BackgroundColor3 = Theme.Background}, 0.15):Play()
+            CreateTween(self.CurrentTab.TabText, {TextColor3 = Theme.TextDim}, 0.15):Play()
+            CreateTween(self.CurrentTab.TabIndicator, {Size = UDim2.new(0, 4, 0, 0)}, 0.15):Play()
+            self.CurrentTab.ContentScroll.Visible = false
+        end
+        
+        self.CurrentTab = tab
+        PlaySound(0.3, 1.3)
+        CreateTween(tab.TabButton, {BackgroundColor3 = Theme.Primary}, 0.15, Enum.EasingStyle.Back):Play()
+        CreateTween(tab.TabText, {TextColor3 = Theme.Text}, 0.15):Play()
+        CreateTween(tab.TabIndicator, {Size = UDim2.new(0, 4, 0, 35)}, 0.15, Enum.EasingStyle.Back):Play()
+        tab.ContentScroll.Visible = true
+        CreateParticleEffect(tab.TabButton, Theme.Accent, 6)
+    end
+    
+    function window:CreateTab(config)
+        config = config or {}
+        local tab = {
+            Name = config.Name or "Tab",
+            Icon = config.Icon or "📁",
+            Elements = {}
+        }
+        
+        -- Tab Button
+        local tabButton = Instance.new("TextButton")
+        tabButton.Size = UDim2.new(1, 0, 0, 45)
+        tabButton.BackgroundColor3 = Theme.Background
+        tabButton.BorderSizePixel = 0
+        tabButton.Text = ""
+        tabButton.LayoutOrder = #self.Tabs + 1
+        tabButton.ZIndex = 5
+        tabButton.Parent = self.TabNavigation
+        
+        local tabCorner = Instance.new("UICorner")
+        tabCorner.CornerRadius = UDim.new(0, 12)
+        tabCorner.Parent = tabButton
+        
+        local tabStroke = Instance.new("UIStroke")
+        tabStroke.Color = Theme.Border
+        tabStroke.Thickness = 1
+        tabStroke.Transparency = 0.8
+        tabStroke.Parent = tabButton
+        
+        -- Tab Icon
+        local tabIcon = Instance.new("TextLabel")
+        tabIcon.Size = UDim
