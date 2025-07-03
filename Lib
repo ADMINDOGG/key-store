@@ -1,5 +1,6 @@
--- Modern Combat GUI Library - สไตล์เท่ๆ เหมือนในรูป
--- Advanced Aimbot & Combat System
+
+-- Advanced Combat GUI Library with Full Features
+-- ระบบ Aimbot, ESP, Speed Hack และอื่นๆ ครบถ้วน
 
 local Library = {}
 local UserInputService = game:GetService("UserInputService")
@@ -7,13 +8,26 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
 
--- Dark Theme Colors - เหมือนในรูป
+-- Global Variables
+local Mouse = LocalPlayer:GetMouse()
+local AimbotEnabled = false
+local ESPEnabled = false
+local SpeedEnabled = false
+local NoClipEnabled = false
+local InfiniteJumpEnabled = false
+local connections = {}
+local espObjects = {}
+
+-- Theme Colors
 local Theme = {
     Background = Color3.fromRGB(13, 13, 13),
     Secondary = Color3.fromRGB(20, 20, 20),
     Tertiary = Color3.fromRGB(25, 25, 25),
-    Accent = Color3.fromRGB(0, 255, 155), -- เขียวเท่ๆ
+    Accent = Color3.fromRGB(0, 255, 155),
     AccentDark = Color3.fromRGB(0, 200, 120),
     Text = Color3.fromRGB(255, 255, 255),
     TextDark = Color3.fromRGB(180, 180, 180),
@@ -25,17 +39,48 @@ local Theme = {
     Orange = Color3.fromRGB(255, 165, 0)
 }
 
--- Create Screen GUI
-local function CreateScreenGui()
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "CombatLibrary"
-    screenGui.Parent = CoreGui
-    screenGui.ResetOnSpawn = false
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    return screenGui
-end
+-- Aimbot Settings
+local AimbotSettings = {
+    Enabled = false,
+    FOV = 90,
+    Smoothness = 0.5,
+    TargetPart = "Head",
+    VisibilityCheck = true,
+    TeamCheck = true,
+    ShowFOV = true
+}
 
--- Tween Helper
+-- ESP Settings
+local ESPSettings = {
+    Enabled = false,
+    ShowBox = true,
+    ShowName = true,
+    ShowDistance = true,
+    ShowHealth = true,
+    BoxColor = Color3.fromRGB(0, 255, 155),
+    NameColor = Color3.fromRGB(255, 255, 255),
+    DistanceColor = Color3.fromRGB(255, 255, 0),
+    HealthColor = Color3.fromRGB(0, 255, 0)
+}
+
+-- Player Settings
+local PlayerSettings = {
+    WalkSpeed = 16,
+    JumpPower = 50,
+    FOV = 70,
+    HipHeight = 0
+}
+
+-- FOV Circle
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 2
+FOVCircle.Color = Theme.Accent
+FOVCircle.Filled = false
+FOVCircle.Transparency = 0.5
+FOVCircle.Visible = false
+FOVCircle.NumSides = 60
+
+-- Utility Functions
 local function Tween(obj, properties, duration, style, direction)
     local tween = TweenService:Create(obj, TweenInfo.new(
         duration or 0.2,
@@ -46,7 +91,6 @@ local function Tween(obj, properties, duration, style, direction)
     return tween
 end
 
--- Create Corner
 local function CreateCorner(parent, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius or 6)
@@ -54,7 +98,6 @@ local function CreateCorner(parent, radius)
     return corner
 end
 
--- Create Stroke
 local function CreateStroke(parent, color, thickness)
     local stroke = Instance.new("UIStroke")
     stroke.Color = color or Theme.Border
@@ -63,27 +106,370 @@ local function CreateStroke(parent, color, thickness)
     return stroke
 end
 
--- Create Glow Effect
-local function CreateGlow(parent, color, size)
-    local glow = Instance.new("ImageLabel")
-    glow.Name = "Glow"
-    glow.BackgroundTransparency = 1
-    glow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
-    glow.ImageColor3 = color or Theme.Accent
-    glow.ImageTransparency = 0.5
-    glow.Size = UDim2.new(1, size or 10, 1, size or 10)
-    glow.Position = UDim2.new(0, -(size or 10)/2, 0, -(size or 10)/2)
-    glow.ZIndex = parent.ZIndex - 1
-    glow.Parent = parent.Parent
-    return glow
+-- ESP Functions
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+    
+    local esp = {}
+    
+    -- Box
+    esp.Box = Drawing.new("Square")
+    esp.Box.Visible = false
+    esp.Box.Color = ESPSettings.BoxColor
+    esp.Box.Thickness = 2
+    esp.Box.Transparency = 1
+    esp.Box.Filled = false
+    
+    -- Name
+    esp.Name = Drawing.new("Text")
+    esp.Name.Visible = false
+    esp.Name.Color = ESPSettings.NameColor
+    esp.Name.Text = player.Name
+    esp.Name.Size = 18
+    esp.Name.Center = true
+    esp.Name.Outline = true
+    esp.Name.OutlineColor = Color3.fromRGB(0, 0, 0)
+    esp.Name.Font = Drawing.Fonts.Plex
+    
+    -- Distance
+    esp.Distance = Drawing.new("Text")
+    esp.Distance.Visible = false
+    esp.Distance.Color = ESPSettings.DistanceColor
+    esp.Distance.Size = 16
+    esp.Distance.Center = true
+    esp.Distance.Outline = true
+    esp.Distance.OutlineColor = Color3.fromRGB(0, 0, 0)
+    esp.Distance.Font = Drawing.Fonts.Plex
+    
+    -- Health
+    esp.Health = Drawing.new("Text")
+    esp.Health.Visible = false
+    esp.Health.Color = ESPSettings.HealthColor
+    esp.Health.Size = 16
+    esp.Health.Center = true
+    esp.Health.Outline = true
+    esp.Health.OutlineColor = Color3.fromRGB(0, 0, 0)
+    esp.Health.Font = Drawing.Fonts.Plex
+    
+    -- Health Bar
+    esp.HealthBar = Drawing.new("Square")
+    esp.HealthBar.Visible = false
+    esp.HealthBar.Color = Color3.fromRGB(0, 255, 0)
+    esp.HealthBar.Thickness = 1
+    esp.HealthBar.Transparency = 1
+    esp.HealthBar.Filled = true
+    
+    esp.HealthBarBG = Drawing.new("Square")
+    esp.HealthBarBG.Visible = false
+    esp.HealthBarBG.Color = Color3.fromRGB(255, 0, 0)
+    esp.HealthBarBG.Thickness = 1
+    esp.HealthBarBG.Transparency = 1
+    esp.HealthBarBG.Filled = true
+    
+    espObjects[player] = esp
 end
 
--- Library Functions
+local function UpdateESP()
+    if not ESPSettings.Enabled then return end
+    
+    for player, esp in pairs(espObjects) do
+        if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
+            local character = player.Character
+            local humanoidRootPart = character.HumanoidRootPart
+            local humanoid = character.Humanoid
+            
+            local vector, onScreen = Camera:WorldToViewportPoint(humanoidRootPart.Position)
+            
+            if onScreen then
+                local head = character:FindFirstChild("Head")
+                if head then
+                    local headVector = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+                    local legVector = Camera:WorldToViewportPoint(humanoidRootPart.Position - Vector3.new(0, 3, 0))
+                    
+                    local distance = (Camera.CFrame.Position - humanoidRootPart.Position).Magnitude
+                    local boxSize = (Camera.CFrame.Position - humanoidRootPart.Position).Magnitude
+                    local boxWidth = 1000 / boxSize
+                    local boxHeight = 1400 / boxSize
+                    
+                    -- Update Box
+                    if ESPSettings.ShowBox then
+                        esp.Box.Size = Vector2.new(boxWidth, boxHeight)
+                        esp.Box.Position = Vector2.new(vector.X - boxWidth/2, vector.Y - boxHeight/2)
+                        esp.Box.Visible = true
+                    else
+                        esp.Box.Visible = false
+                    end
+                    
+                    -- Update Name
+                    if ESPSettings.ShowName then
+                        esp.Name.Position = Vector2.new(vector.X, headVector.Y - 30)
+                        esp.Name.Visible = true
+                    else
+                        esp.Name.Visible = false
+                    end
+                    
+                    -- Update Distance
+                    if ESPSettings.ShowDistance then
+                        esp.Distance.Text = math.floor(distance) .. "m"
+                        esp.Distance.Position = Vector2.new(vector.X, legVector.Y + 20)
+                        esp.Distance.Visible = true
+                    else
+                        esp.Distance.Visible = false
+                    end
+                    
+                    -- Update Health
+                    if ESPSettings.ShowHealth then
+                        local health = math.floor(humanoid.Health)
+                        local maxHealth = math.floor(humanoid.MaxHealth)
+                        esp.Health.Text = health .. "/" .. maxHealth
+                        esp.Health.Position = Vector2.new(vector.X, legVector.Y + 40)
+                        esp.Health.Visible = true
+                        
+                        -- Health Bar
+                        local healthPercent = health / maxHealth
+                        esp.HealthBarBG.Size = Vector2.new(boxWidth, 4)
+                        esp.HealthBarBG.Position = Vector2.new(vector.X - boxWidth/2, legVector.Y + 5)
+                        esp.HealthBarBG.Visible = true
+                        
+                        esp.HealthBar.Size = Vector2.new(boxWidth * healthPercent, 4)
+                        esp.HealthBar.Position = Vector2.new(vector.X - boxWidth/2, legVector.Y + 5)
+                        esp.HealthBar.Visible = true
+                    else
+                        esp.Health.Visible = false
+                        esp.HealthBar.Visible = false
+                        esp.HealthBarBG.Visible = false
+                    end
+                else
+                    -- Hide ESP if no head
+                    for _, obj in pairs(esp) do
+                        if typeof(obj) == "userdata" then
+                            obj.Visible = false
+                        end
+                    end
+                end
+            else
+                -- Hide ESP if not on screen
+                for _, obj in pairs(esp) do
+                    if typeof(obj) == "userdata" then
+                        obj.Visible = false
+                    end
+                end
+            end
+        else
+            -- Hide ESP if no character
+            for _, obj in pairs(esp) do
+                if typeof(obj) == "userdata" then
+                    obj.Visible = false
+                end
+            end
+        end
+    end
+end
+
+local function RemoveESP(player)
+    if espObjects[player] then
+        for _, obj in pairs(espObjects[player]) do
+            if typeof(obj) == "userdata" then
+                obj:Remove()
+            end
+        end
+        espObjects[player] = nil
+    end
+end
+
+-- Aimbot Functions
+local function GetClosestPlayer()
+    local closestPlayer = nil
+    local closestDistance = math.huge
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(AimbotSettings.TargetPart) then
+            -- Team check
+            if AimbotSettings.TeamCheck and player.Team == LocalPlayer.Team then
+                continue
+            end
+            
+            local character = player.Character
+            local targetPart = character[AimbotSettings.TargetPart]
+            
+            -- Visibility check
+            if AimbotSettings.VisibilityCheck then
+                local ray = Workspace:Raycast(Camera.CFrame.Position, (targetPart.Position - Camera.CFrame.Position).Unit * (targetPart.Position - Camera.CFrame.Position).Magnitude)
+                if ray and ray.Instance.Parent ~= character then
+                    continue
+                end
+            end
+            
+            local screenPoint, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+            if onScreen then
+                local distance = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(screenPoint.X, screenPoint.Y)).Magnitude
+                if distance < AimbotSettings.FOV and distance < closestDistance then
+                    closestPlayer = player
+                    closestDistance = distance
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+local function AimAt(player)
+    if player and player.Character and player.Character:FindFirstChild(AimbotSettings.TargetPart) then
+        local targetPart = player.Character[AimbotSettings.TargetPart]
+        local targetPosition = targetPart.Position
+        
+        local camera = Camera
+        local currentCFrame = camera.CFrame
+        local targetCFrame = CFrame.lookAt(currentCFrame.Position, targetPosition)
+        
+        -- Smooth aiming
+        camera.CFrame = currentCFrame:Lerp(targetCFrame, AimbotSettings.Smoothness)
+    end
+end
+
+-- Player Modification Functions
+local function SetWalkSpeed(speed)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = speed
+        PlayerSettings.WalkSpeed = speed
+    end
+end
+
+local function SetJumpPower(power)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.JumpPower = power
+        PlayerSettings.JumpPower = power
+    end
+end
+
+local function SetFOV(fov)
+    Camera.FieldOfView = fov
+    PlayerSettings.FOV = fov
+end
+
+local function SetHipHeight(height)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.HipHeight = height
+        PlayerSettings.HipHeight = height
+    end
+end
+
+local function ToggleNoClip(enabled)
+    NoClipEnabled = enabled
+    if enabled then
+        connections.NoClip = RunService.Stepped:Connect(function()
+            if LocalPlayer.Character then
+                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                    if part:IsA("BasePart") and part.CanCollide then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    else
+        if connections.NoClip then
+            connections.NoClip:Disconnect()
+            connections.NoClip = nil
+        end
+        if LocalPlayer.Character then
+            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end
+
+local function ToggleInfiniteJump(enabled)
+    InfiniteJumpEnabled = enabled
+    if enabled then
+        connections.InfiniteJump = UserInputService.JumpRequest:Connect(function()
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
+    else
+        if connections.InfiniteJump then
+            connections.InfiniteJump:Disconnect()
+            connections.InfiniteJump = nil
+        end
+    end
+end
+
+-- Main Loop
+local function StartMainLoop()
+    connections.MainLoop = RunService.Heartbeat:Connect(function()
+        -- Update FOV Circle
+        if AimbotSettings.ShowFOV then
+            FOVCircle.Position = Vector2.new(Mouse.X, Mouse.Y)
+            FOVCircle.Radius = AimbotSettings.FOV
+            FOVCircle.Visible = AimbotSettings.Enabled
+        else
+            FOVCircle.Visible = false
+        end
+        
+        -- Aimbot
+        if AimbotSettings.Enabled then
+            local target = GetClosestPlayer()
+            if target then
+                AimAt(target)
+            end
+        end
+        
+        -- Update ESP
+        UpdateESP()
+        
+        -- Auto-maintain player settings
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            local humanoid = LocalPlayer.Character.Humanoid
+            if humanoid.WalkSpeed ~= PlayerSettings.WalkSpeed then
+                humanoid.WalkSpeed = PlayerSettings.WalkSpeed
+            end
+            if humanoid.JumpPower ~= PlayerSettings.JumpPower then
+                humanoid.JumpPower = PlayerSettings.JumpPower
+            end
+            if humanoid.HipHeight ~= PlayerSettings.HipHeight then
+                humanoid.HipHeight = PlayerSettings.HipHeight
+            end
+        end
+        
+        if Camera.FieldOfView ~= PlayerSettings.FOV then
+            Camera.FieldOfView = PlayerSettings.FOV
+        end
+    end)
+end
+
+-- Player Events
+Players.PlayerAdded:Connect(function(player)
+    CreateESP(player)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    RemoveESP(player)
+end)
+
+-- Initialize ESP for existing players
+for _, player in pairs(Players:GetPlayers()) do
+    CreateESP(player)
+end
+
+-- Start main loop
+StartMainLoop()
+
+-- GUI Creation
 function Library:CreateWindow(config)
     local window = {}
     
-    -- Create main frame
-    local screenGui = CreateScreenGui()
+    -- Create Screen GUI
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "CombatLibrary"
+    screenGui.Parent = CoreGui
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- Main Frame
     local main = Instance.new("Frame")
     main.Name = "MainFrame"
     main.BackgroundColor3 = Theme.Background
@@ -95,7 +481,7 @@ function Library:CreateWindow(config)
     CreateCorner(main, 8)
     CreateStroke(main, Theme.BorderLight, 1)
     
-    -- Left Panel (Sidebar)
+    -- Left Panel (Icon Sidebar)
     local leftPanel = Instance.new("Frame")
     leftPanel.Name = "LeftPanel"
     leftPanel.BackgroundColor3 = Theme.Secondary
@@ -106,15 +492,6 @@ function Library:CreateWindow(config)
     
     CreateCorner(leftPanel, 8)
     
-    -- Right border for left panel
-    local rightBorder = Instance.new("Frame")
-    rightBorder.Name = "RightBorder"
-    rightBorder.BackgroundColor3 = Theme.Border
-    rightBorder.Size = UDim2.new(0, 1, 1, 0)
-    rightBorder.Position = UDim2.new(1, 0, 0, 0)
-    rightBorder.BorderSizePixel = 0
-    rightBorder.Parent = leftPanel
-    
     -- Tab Panel
     local tabPanel = Instance.new("Frame")
     tabPanel.Name = "TabPanel"
@@ -123,17 +500,6 @@ function Library:CreateWindow(config)
     tabPanel.Position = UDim2.new(0, 50, 0, 0)
     tabPanel.BorderSizePixel = 0
     tabPanel.Parent = main
-    
-    CreateCorner(tabPanel, 0)
-    
-    -- Tab border
-    local tabBorder = Instance.new("Frame")
-    tabBorder.Name = "TabBorder"
-    tabBorder.BackgroundColor3 = Theme.Border
-    tabBorder.Size = UDim2.new(0, 1, 1, 0)
-    tabBorder.Position = UDim2.new(1, 0, 0, 0)
-    tabBorder.BorderSizePixel = 0
-    tabBorder.Parent = tabPanel
     
     -- Content Panel
     local contentPanel = Instance.new("Frame")
@@ -144,9 +510,7 @@ function Library:CreateWindow(config)
     contentPanel.BorderSizePixel = 0
     contentPanel.Parent = main
     
-    CreateCorner(contentPanel, 0)
-    
-    -- Icon container in left panel
+    -- Icon Container
     local iconContainer = Instance.new("Frame")
     iconContainer.Name = "IconContainer"
     iconContainer.BackgroundTransparency = 1
@@ -160,7 +524,7 @@ function Library:CreateWindow(config)
     iconLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     iconLayout.Parent = iconContainer
     
-    -- Tab content area
+    -- Tab Content
     local tabContent = Instance.new("Frame")
     tabContent.Name = "TabContent"
     tabContent.BackgroundTransparency = 1
@@ -168,7 +532,7 @@ function Library:CreateWindow(config)
     tabContent.Position = UDim2.new(0, 10, 0, 10)
     tabContent.Parent = tabPanel
     
-    -- Main content area
+    -- Main Content
     local mainContent = Instance.new("ScrollingFrame")
     mainContent.Name = "MainContent"
     mainContent.BackgroundTransparency = 1
@@ -179,7 +543,6 @@ function Library:CreateWindow(config)
     mainContent.ScrollBarImageColor3 = Theme.Accent
     mainContent.Parent = contentPanel
     
-    -- Content layout
     local contentLayout = Instance.new("UIListLayout")
     contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
     contentLayout.Padding = UDim.new(0, 8)
@@ -227,7 +590,7 @@ function Library:CreateWindow(config)
         mainContent.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
     end
     
-    -- Tab functions
+    -- Create Tab Function
     function window:CreateTab(config)
         local tab = {}
         local tabName = config.Name or "Tab"
@@ -247,7 +610,7 @@ function Library:CreateWindow(config)
         CreateCorner(iconButton, 6)
         CreateStroke(iconButton, Theme.Border)
         
-        -- Create tab label area
+        -- Create tab label
         local tabLabel = Instance.new("Frame")
         tabLabel.Name = tabName .. "Label"
         tabLabel.BackgroundTransparency = 1
@@ -295,7 +658,9 @@ function Library:CreateWindow(config)
             -- Show tab elements
             if elements[tabName] then
                 for _, element in pairs(elements[tabName]) do
-                    element.Parent = mainContent
+                    if element.Parent ~= mainContent then
+                        element.Parent = mainContent
+                    end
                 end
             end
             
@@ -315,21 +680,20 @@ function Library:CreateWindow(config)
             end
         end)
         
+        -- Initialize elements for this tab
+        elements[tabName] = {}
+        
         -- Set first tab as active
-        if #tabs == 1 then
+        if next(tabs) == tabName then
             iconButton.MouseButton1Click:Fire()
         end
         
-        -- Initialize elements array for this tab
-        elements[tabName] = {}
-        
-        -- Tab element functions
+        -- Tab Elements
         function tab:CreateSection(config)
             local sectionFrame = Instance.new("Frame")
             sectionFrame.Name = config.Name or "Section"
             sectionFrame.BackgroundColor3 = Theme.Secondary
             sectionFrame.Size = UDim2.new(1, 0, 0, 40)
-            sectionFrame.Parent = mainContent
             
             CreateCorner(sectionFrame, 6)
             CreateStroke(sectionFrame, Theme.BorderLight)
@@ -346,7 +710,10 @@ function Library:CreateWindow(config)
             sectionLabel.Parent = sectionFrame
             
             table.insert(elements[tabName], sectionFrame)
-            updateCanvasSize()
+            if currentTab == tab then
+                sectionFrame.Parent = mainContent
+                updateCanvasSize()
+            end
             
             return sectionFrame
         end
@@ -439,7 +806,10 @@ function Library:CreateWindow(config)
             end)
             
             table.insert(elements[tabName], toggleFrame)
-            updateCanvasSize()
+            if currentTab == tab then
+                toggleFrame.Parent = mainContent
+                updateCanvasSize()
+            end
             
             return toggleFrame
         end
@@ -530,7 +900,7 @@ function Library:CreateWindow(config)
             updateSlider()
             
             -- Slider dragging
-            local function startDrag(input)
+            local function startDrag()
                 dragging = true
                 local function updateValue()
                     local mousePos = UserInputService:GetMouseLocation()
@@ -549,7 +919,7 @@ function Library:CreateWindow(config)
                 
                 local connection
                 connection = UserInputService.InputChanged:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseMovement then
+                    if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
                         updateValue()
                     end
                 end)
@@ -566,18 +936,21 @@ function Library:CreateWindow(config)
             
             handle.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    startDrag(input)
+                    startDrag()
                 end
             end)
             
             track.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    startDrag(input)
+                    startDrag()
                 end
             end)
             
             table.insert(elements[tabName], sliderFrame)
-            updateCanvasSize()
+            if currentTab == tab then
+                sliderFrame.Parent = mainContent
+                updateCanvasSize()
+            end
             
             return sliderFrame
         end
@@ -634,7 +1007,6 @@ function Library:CreateWindow(config)
             
             -- Dropdown functionality
             local isOpen = false
-            local selectedValue = config.Default
             
             local function toggleDropdown()
                 isOpen = not isOpen
@@ -673,7 +1045,6 @@ function Library:CreateWindow(config)
                 padding.Parent = optionButton
                 
                 optionButton.MouseButton1Click:Connect(function()
-                    selectedValue = option
                     dropdownButton.Text = option
                     toggleDropdown()
                     
@@ -692,163 +1063,12 @@ function Library:CreateWindow(config)
             end
             
             table.insert(elements[tabName], dropdownFrame)
-            updateCanvasSize()
+            if currentTab == tab then
+                dropdownFrame.Parent = mainContent
+                updateCanvasSize()
+            end
             
             return dropdownFrame
-        end
-        
-        function tab:CreateKeybind(config)
-            local keybindFrame = Instance.new("Frame")
-            keybindFrame.Name = config.Name or "Keybind"
-            keybindFrame.BackgroundColor3 = Theme.Secondary
-            keybindFrame.Size = UDim2.new(1, 0, 0, 35)
-            
-            CreateCorner(keybindFrame, 6)
-            CreateStroke(keybindFrame, Theme.BorderLight)
-            
-            -- Keybind label
-            local label = Instance.new("TextLabel")
-            label.BackgroundTransparency = 1
-            label.Size = UDim2.new(1, -100, 1, 0)
-            label.Position = UDim2.new(0, 15, 0, 0)
-            label.Text = config.Name or "Keybind"
-            label.TextColor3 = Theme.Text
-            label.TextSize = 12
-            label.Font = Enum.Font.Gotham
-            label.TextXAlignment = Enum.TextXAlignment.Left
-            label.Parent = keybindFrame
-            
-            -- Keybind button
-            local keybindButton = Instance.new("TextButton")
-            keybindButton.BackgroundColor3 = Theme.Background
-            keybindButton.Size = UDim2.new(0, 70, 0, 25)
-            keybindButton.Position = UDim2.new(1, -85, 0.5, -12.5)
-            keybindButton.Text = config.Default or "None"
-            keybindButton.TextColor3 = Theme.Accent
-            keybindButton.TextSize = 11
-            keybindButton.Font = Enum.Font.GothamBold
-            keybindButton.Parent = keybindFrame
-            
-            CreateCorner(keybindButton, 4)
-            CreateStroke(keybindButton, Theme.Border)
-            
-            -- Keybind functionality
-            local currentKey = config.Default
-            local listening = false
-            
-            keybindButton.MouseButton1Click:Connect(function()
-                if not listening then
-                    listening = true
-                    keybindButton.Text = "..."
-                    keybindButton.TextColor3 = Theme.Orange
-                    
-                    local connection
-                    connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-                        if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard then
-                            currentKey = input.KeyCode.Name
-                            keybindButton.Text = currentKey
-                            keybindButton.TextColor3 = Theme.Accent
-                            listening = false
-                            connection:Disconnect()
-                        end
-                    end)
-                end
-            end)
-            
-            -- Key detection
-            UserInputService.InputBegan:Connect(function(input, gameProcessed)
-                if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard then
-                    if input.KeyCode.Name == currentKey and config.Callback then
-                        config.Callback()
-                    end
-                end
-            end)
-            
-            table.insert(elements[tabName], keybindFrame)
-            updateCanvasSize()
-            
-            return keybindFrame
-        end
-        
-        function tab:CreateTextbox(config)
-            local textboxFrame = Instance.new("Frame")
-            textboxFrame.Name = config.Name or "Textbox"
-            textboxFrame.BackgroundColor3 = Theme.Secondary
-            textboxFrame.Size = UDim2.new(1, 0, 0, 35)
-            
-            CreateCorner(textboxFrame, 6)
-            CreateStroke(textboxFrame, Theme.BorderLight)
-            
-            -- Textbox
-            local textbox = Instance.new("TextBox")
-            textbox.BackgroundTransparency = 1
-            textbox.Size = UDim2.new(1, -30, 1, 0)
-            textbox.Position = UDim2.new(0, 15, 0, 0)
-            textbox.PlaceholderText = config.PlaceholderText or "Enter text..."
-            textbox.Text = config.Default or ""
-            textbox.TextColor3 = Theme.Text
-            textbox.PlaceholderColor3 = Theme.TextDark
-            textbox.TextSize = 12
-            textbox.Font = Enum.Font.Gotham
-            textbox.TextXAlignment = Enum.TextXAlignment.Left
-            textbox.Parent = textboxFrame
-            
-            -- Focus effects
-            textbox.Focused:Connect(function()
-                Tween(textboxFrame, {BackgroundColor3 = Theme.Hover})
-                CreateStroke(textboxFrame, Theme.Accent)
-            end)
-            
-            textbox.FocusLost:Connect(function()
-                Tween(textboxFrame, {BackgroundColor3 = Theme.Secondary})
-                CreateStroke(textboxFrame, Theme.BorderLight)
-                if config.Callback then
-                    config.Callback(textbox.Text)
-                end
-            end)
-            
-            table.insert(elements[tabName], textboxFrame)
-            updateCanvasSize()
-            
-            return textboxFrame
-        end
-        
-        function tab:CreateButton(config)
-            local buttonFrame = Instance.new("TextButton")
-            buttonFrame.Name = config.Name or "Button"
-            buttonFrame.BackgroundColor3 = Theme.Secondary
-            buttonFrame.Size = UDim2.new(1, 0, 0, 35)
-            buttonFrame.Text = config.Name or "Button"
-            buttonFrame.TextColor3 = Theme.Text
-            buttonFrame.TextSize = 12
-            buttonFrame.Font = Enum.Font.GothamBold
-            
-            CreateCorner(buttonFrame, 6)
-            CreateStroke(buttonFrame, Theme.BorderLight)
-            
-            -- Button effects
-            buttonFrame.MouseButton1Click:Connect(function()
-                Tween(buttonFrame, {BackgroundColor3 = Theme.Accent}, 0.1)
-                wait(0.1)
-                Tween(buttonFrame, {BackgroundColor3 = Theme.Secondary}, 0.1)
-                
-                if config.Callback then
-                    config.Callback()
-                end
-            end)
-            
-            buttonFrame.MouseEnter:Connect(function()
-                Tween(buttonFrame, {BackgroundColor3 = Theme.Hover})
-            end)
-            
-            buttonFrame.MouseLeave:Connect(function()
-                Tween(buttonFrame, {BackgroundColor3 = Theme.Secondary})
-            end)
-            
-            table.insert(elements[tabName], buttonFrame)
-            updateCanvasSize()
-            
-            return buttonFrame
         end
         
         return tab
@@ -857,266 +1077,209 @@ function Library:CreateWindow(config)
     return window
 end
 
--- Aimbot Functions (เพิ่มฟีเจอร์พิเศษ)
-function Library:CreateAimbotModule()
-    local AimbotModule = {}
+-- Example Usage with Full Functionality
+local function CreateFullGUI()
+    local Window = Library:CreateWindow({
+        Name = "Advanced Combat System"
+    })
     
-    -- Aimbot Settings
-    local settings = {
-        enabled = false,
-        fov = 90,
-        smoothness = 0.5,
-        targetPart = "Head",
-        visibilityCheck = true,
-        teamCheck = true
-    }
+    -- Aimbot Tab
+    local AimbotTab = Window:CreateTab({
+        Name = "Aimbot",
+        Icon = "🎯"
+    })
     
-    -- FOV Circle
-    local fovCircle = Drawing.new("Circle")
-    fovCircle.Thickness = 2
-    fovCircle.Color = Color3.fromRGB(0, 255, 155)
-    fovCircle.Filled = false
-    fovCircle.Transparency = 0.7
-    fovCircle.Visible = false
+    AimbotTab:CreateSection({Name = "Aimbot Settings"})
     
-    -- Get closest target
-    local function getClosestTarget()
-        local camera = workspace.CurrentCamera
-        local localPlayer = Players.LocalPlayer
-        local mouse = localPlayer:GetMouse()
-        
-        local closestTarget = nil
-        local closestDistance = math.huge
-        
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= localPlayer and player.Character and player.Character:FindFirstChild(settings.targetPart) then
-                local character = player.Character
-                local targetPart = character[settings.targetPart]
-                
-                -- Team check
-                if settings.teamCheck and player.Team == localPlayer.Team then
-                    continue
-                end
-                
-                -- Visibility check
-                if settings.visibilityCheck then
-                    local ray = workspace:Raycast(camera.CFrame.Position, (targetPart.Position - camera.CFrame.Position).Unit * (targetPart.Position - camera.CFrame.Position).Magnitude)
-                    if ray and ray.Instance.Parent ~= character then
-                        continue
-                    end
-                end
-                
-                local screenPoint, onScreen = camera:WorldToViewportPoint(targetPart.Position)
-                if onScreen then
-                    local distance = (Vector2.new(mouse.X, mouse.Y) - Vector2.new(screenPoint.X, screenPoint.Y)).Magnitude
-                    if distance < settings.fov and distance < closestDistance then
-                        closestTarget = targetPart
-                        closestDistance = distance
-                    end
-                end
-            end
+    AimbotTab:CreateToggle({
+        Name = "Enable Aimbot",
+        Default = false,
+        Callback = function(value)
+            AimbotSettings.Enabled = value
         end
-        
-        return closestTarget
-    end
+    })
     
-    -- Aimbot loop
-    RunService.Heartbeat:Connect(function()
-        if settings.enabled then
-            local target = getClosestTarget()
-            if target then
-                local camera = workspace.CurrentCamera
-                local targetPosition = target.Position
-                local currentCFrame = camera.CFrame
-                local targetCFrame = CFrame.lookAt(currentCFrame.Position, targetPosition)
-                
-                -- Smooth aiming
-                camera.CFrame = currentCFrame:Lerp(targetCFrame, settings.smoothness)
-            end
+    AimbotTab:CreateSlider({
+        Name = "FOV",
+        Min = 10,
+        Max = 500,
+        Default = 90,
+        Callback = function(value)
+            AimbotSettings.FOV = value
         end
-        
-        -- Update FOV circle
-        local mouse = Players.LocalPlayer:GetMouse()
-        fovCircle.Position = Vector2.new(mouse.X, mouse.Y)
-        fovCircle.Radius = settings.fov
-        fovCircle.Visible = settings.enabled
-    end)
+    })
     
-    -- Module functions
-    function AimbotModule:SetEnabled(enabled)
-        settings.enabled = enabled
-    end
+    AimbotTab:CreateSlider({
+        Name = "Smoothness",
+        Min = 0.1,
+        Max = 1,
+        Default = 0.5,
+        Callback = function(value)
+            AimbotSettings.Smoothness = value
+        end
+    })
     
-    function AimbotModule:SetFOV(fov)
-        settings.fov = fov
-    end
+    AimbotTab:CreateDropdown({
+        Name = "Target Part",
+        Options = {"Head", "Torso", "HumanoidRootPart"},
+        Default = "Head",
+        Callback = function(option)
+            AimbotSettings.TargetPart = option
+        end
+    })
     
-    function AimbotModule:SetSmoothness(smoothness)
-        settings.smoothness = smoothness
-    end
+    AimbotTab:CreateToggle({
+        Name = "Visibility Check",
+        Default = true,
+        Callback = function(value)
+            AimbotSettings.VisibilityCheck = value
+        end
+    })
     
-    function AimbotModule:SetTargetPart(part)
-        settings.targetPart = part
-    end
+    AimbotTab:CreateToggle({
+        Name = "Team Check",
+        Default = true,
+        Callback = function(value)
+            AimbotSettings.TeamCheck = value
+        end
+    })
     
-    function AimbotModule:SetVisibilityCheck(enabled)
-        settings.visibilityCheck = enabled
-    end
+    AimbotTab:CreateToggle({
+        Name = "Show FOV",
+        Default = true,
+        Callback = function(value)
+            AimbotSettings.ShowFOV = value
+        end
+    })
     
-    function AimbotModule:SetTeamCheck(enabled)
-        settings.teamCheck = enabled
-    end
+    -- ESP Tab
+    local ESPTab = Window:CreateTab({
+        Name = "ESP",
+        Icon = "👁️"
+    })
     
-    return AimbotModule
+    ESPTab:CreateSection({Name = "ESP Settings"})
+    
+    ESPTab:CreateToggle({
+        Name = "Enable ESP",
+        Default = false,
+        Callback = function(value)
+            ESPSettings.Enabled = value
+        end
+    })
+    
+    ESPTab:CreateToggle({
+        Name = "Show Box",
+        Default = true,
+        Callback = function(value)
+            ESPSettings.ShowBox = value
+        end
+    })
+    
+    ESPTab:CreateToggle({
+        Name = "Show Name",
+        Default = true,
+        Callback = function(value)
+            ESPSettings.ShowName = value
+        end
+    })
+    
+    ESPTab:CreateToggle({
+        Name = "Show Distance",
+        Default = true,
+        Callback = function(value)
+            ESPSettings.ShowDistance = value
+        end
+    })
+    
+    ESPTab:CreateToggle({
+        Name = "Show Health",
+        Default = true,
+        Callback = function(value)
+            ESPSettings.ShowHealth = value
+        end
+    })
+    
+    -- Player Tab
+    local PlayerTab = Window:CreateTab({
+        Name = "Player",
+        Icon = "🏃"
+    })
+    
+    PlayerTab:CreateSection({Name = "Movement"})
+    
+    PlayerTab:CreateSlider({
+        Name = "Walk Speed",
+        Min = 16,
+        Max = 200,
+        Default = 16,
+        Callback = function(value)
+            SetWalkSpeed(value)
+        end
+    })
+    
+    PlayerTab:CreateSlider({
+        Name = "Jump Power",
+        Min = 50,
+        Max = 300,
+        Default = 50,
+        Callback = function(value)
+            SetJumpPower(value)
+        end
+    })
+    
+    PlayerTab:CreateSlider({
+        Name = "Hip Height",
+        Min = 0,
+        Max = 10,
+        Default = 0,
+        Callback = function(value)
+            SetHipHeight(value)
+        end
+    })
+    
+    PlayerTab:CreateToggle({
+        Name = "No Clip",
+        Default = false,
+        Callback = function(value)
+            ToggleNoClip(value)
+        end
+    })
+    
+    PlayerTab:CreateToggle({
+        Name = "Infinite Jump",
+        Default = false,
+        Callback = function(value)
+            ToggleInfiniteJump(value)
+        end
+    })
+    
+    PlayerTab:CreateSection({Name = "Visual"})
+    
+    PlayerTab:CreateSlider({
+        Name = "FOV",
+        Min = 70,
+        Max = 120,
+        Default = 70,
+        Callback = function(value)
+            SetFOV(value)
+        end
+    })
+    
+    -- Misc Tab
+    local MiscTab = Window:CreateTab({
+        Name = "Misc",
+        Icon = "⚙️"
+    })
+    
+    MiscTab:CreateSection({Name = "Server"})
+    
+    -- Add server hop, rejoin functions here
+    
+    return Window
 end
 
--- Example Usage
---[[
-local Library = require(script.CombatLibrary)
-
--- Create Window
-local Window = Library:CreateWindow({
-    Name = "Combat Menu"
-})
-
--- Create Aimbot Tab
-local AimbotTab = Window:CreateTab({
-    Name = "Aimbot",
-    Icon = "🎯"
-})
-
--- Create Aimbot Module
-local Aimbot = Library:CreateAimbotModule()
-
--- Aimbot Section
-AimbotTab:CreateSection({Name = "Aimbot"})
-
-AimbotTab:CreateToggle({
-    Name = "Enable Aimbot",
-    Default = false,
-    Callback = function(value)
-        Aimbot:SetEnabled(value)
-    end
-})
-
-AimbotTab:CreateSlider({
-    Name = "FOV",
-    Min = 10,
-    Max = 500,
-    Default = 90,
-    Callback = function(value)
-        Aimbot:SetFOV(value)
-    end
-})
-
-AimbotTab:CreateSlider({
-    Name = "Smoothness",
-    Min = 0.1,
-    Max = 1,
-    Default = 0.5,
-    Callback = function(value)
-        Aimbot:SetSmoothness(value)
-    end
-})
-
-AimbotTab:CreateDropdown({
-    Name = "Target Part",
-    Options = {"Head", "Torso", "HumanoidRootPart"},
-    Default = "Head",
-    Callback = function(option)
-        Aimbot:SetTargetPart(option)
-    end
-})
-
-AimbotTab:CreateToggle({
-    Name = "Visibility Check",
-    Default = true,
-    Callback = function(value)
-        Aimbot:SetVisibilityCheck(value)
-    end
-})
-
-AimbotTab:CreateToggle({
-    Name = "Team Check",
-    Default = true,
-    Callback = function(value)
-        Aimbot:SetTeamCheck(value)
-    end
-})
-
--- Weapon Mods Tab
-local WeaponTab = Window:CreateTab({
-    Name = "Weapon Mods",
-    Icon = "⚔️"
-})
-
-WeaponTab:CreateSection({Name = "Weapon Settings"})
-
-WeaponTab:CreateToggle({
-    Name = "No Recoil",
-    Default = false,
-    Callback = function(value)
-        -- No recoil logic
-    end
-})
-
-WeaponTab:CreateToggle({
-    Name = "Rapid Fire",
-    Default = false,
-    Callback = function(value)
-        -- Rapid fire logic
-    end
-})
-
-WeaponTab:CreateSlider({
-    Name = "Damage Multiplier",
-    Min = 1,
-    Max = 10,
-    Default = 1,
-    Callback = function(value)
-        -- Damage multiplier logic
-    end
-})
-
--- Misc Tab
-local MiscTab = Window:CreateTab({
-    Name = "Misc",
-    Icon = "⚙️"
-})
-
-MiscTab:CreateSection({Name = "Player Settings"})
-
-MiscTab:CreateSlider({
-    Name = "Walk Speed",
-    Min = 16,
-    Max = 100,
-    Default = 16,
-    Callback = function(value)
-        if Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
-            Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
-        end
-    end
-})
-
-MiscTab:CreateSlider({
-    Name = "Jump Power",
-    Min = 50,
-    Max = 200,
-    Default = 50,
-    Callback = function(value)
-        if Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
-            Players.LocalPlayer.Character.Humanoid.JumpPower = value
-        end
-    end
-})
-
-MiscTab:CreateKeybind({
-    Name = "Toggle Menu",
-    Default = "Insert",
-    Callback = function()
-        -- Toggle menu visibility
-    end
-})
---]]
+-- Auto-execute
+CreateFullGUI()
 
 return Library
