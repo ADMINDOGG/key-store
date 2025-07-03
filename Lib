@@ -148,23 +148,26 @@ local function CreateFloatButton(window)
     floatStroke.Parent = floatButton
     
     -- Float button animations
-    local pulseAnimation = CreateTween(floatButton, {
-        BackgroundTransparency = 0.1,
-        Size = UDim2.new(0, Settings.FloatButtonSize + 5, 0, Settings.FloatButtonSize + 5)
-    }, 1)
-    pulseAnimation.Completed:Connect(function()
-        local reversePulse = CreateTween(floatButton, {
-            BackgroundTransparency = 0.3,
-            Size = UDim2.new(0, Settings.FloatButtonSize, 0, Settings.FloatButtonSize)
+    local function startPulse()
+        local pulseAnimation = CreateTween(floatButton, {
+            BackgroundTransparency = 0.1,
+            Size = UDim2.new(0, Settings.FloatButtonSize + 5, 0, Settings.FloatButtonSize + 5)
         }, 1)
-        reversePulse:Play()
-        reversePulse.Completed:Connect(function()
-            if floatButton.Parent then
-                pulseAnimation:Play()
-            end
+        pulseAnimation:Play()
+        pulseAnimation.Completed:Connect(function()
+            local reversePulse = CreateTween(floatButton, {
+                BackgroundTransparency = 0.3,
+                Size = UDim2.new(0, Settings.FloatButtonSize, 0, Settings.FloatButtonSize)
+            }, 1)
+            reversePulse:Play()
+            reversePulse.Completed:Connect(function()
+                if floatButton.Parent then
+                    startPulse()
+                end
+            end)
         end)
-    end)
-    pulseAnimation:Play()
+    end
+    startPulse()
     
     -- Float button hover effects
     floatButton.MouseEnter:Connect(function()
@@ -223,10 +226,12 @@ local function CreateFloatButton(window)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             floatDragging = false
             -- Update settings position
-            Settings.FloatButtonPosition = {
-                floatButton.Position.X.Offset / floatButton.Parent.AbsoluteSize.X,
-                floatButton.Position.Y.Offset / floatButton.Parent.AbsoluteSize.Y
-            }
+            if floatButton.Parent then
+                Settings.FloatButtonPosition = {
+                    floatButton.Position.X.Offset / floatButton.Parent.AbsoluteSize.X,
+                    floatButton.Position.Y.Offset / floatButton.Parent.AbsoluteSize.Y
+                }
+            end
         end
     end)
     
@@ -462,112 +467,6 @@ function Library:CreateWindow(config)
     
     -- Create Float Button
     CreateFloatButton(window)
-    
-    -- Create Settings Tab
-    window.SettingsTab = window:CreateTab({
-        Name = "Settings",
-        Icon = "⚙️"
-    })
-    
-    -- Settings Tab Content
-    window.SettingsTab:CreateSection("UI Settings")
-    
-    -- Toggle Key Setting
-    local keySelectFrame = Instance.new("Frame")
-    keySelectFrame.Name = "KeySelectFrame"
-    keySelectFrame.Size = UDim2.new(1, 0, 0, 50)
-    keySelectFrame.BackgroundColor3 = Theme.Background
-    keySelectFrame.BorderSizePixel = 0
-    keySelectFrame.LayoutOrder = #window.SettingsTab.Elements + 1
-    keySelectFrame.ZIndex = 5
-    keySelectFrame.Parent = window.SettingsTab.ContentScroll
-    
-    local keySelectCorner = Instance.new("UICorner")
-    keySelectCorner.CornerRadius = UDim.new(0, 8)
-    keySelectCorner.Parent = keySelectFrame
-    
-    local keySelectStroke = Instance.new("UIStroke")
-    keySelectStroke.Color = Theme.Border
-    keySelectStroke.Thickness = 1
-    keySelectStroke.Transparency = 0.7
-    keySelectStroke.Parent = keySelectFrame
-    
-    local keySelectLabel = Instance.new("TextLabel")
-    keySelectLabel.Size = UDim2.new(1, -120, 1, 0)
-    keySelectLabel.Position = UDim2.new(0, 10, 0, 0)
-    keySelectLabel.BackgroundTransparency = 1
-    keySelectLabel.Text = "Toggle Key"
-    keySelectLabel.TextColor3 = Theme.Text
-    keySelectLabel.TextSize = 12
-    keySelectLabel.Font = Enum.Font.Gotham
-    keySelectLabel.TextXAlignment = Enum.TextXAlignment.Left
-    keySelectLabel.ZIndex = 6
-    keySelectLabel.Parent = keySelectFrame
-    
-    local keySelectButton = Instance.new("TextButton")
-    keySelectButton.Name = "KeySelectButton"
-    keySelectButton.Size = UDim2.new(0, 100, 0, 30)
-    keySelectButton.Position = UDim2.new(1, -110, 0.5, -15)
-    keySelectButton.BackgroundColor3 = Theme.Primary
-    keySelectButton.BorderSizePixel = 0
-    keySelectButton.Text = KeyNames[Settings.ToggleKey] or "Insert"
-    keySelectButton.TextColor3 = Theme.Text
-    keySelectButton.TextSize = 11
-    keySelectButton.Font = Enum.Font.Gotham
-    keySelectButton.ZIndex = 6
-    keySelectButton.Parent = keySelectFrame
-    
-    local keySelectButtonCorner = Instance.new("UICorner")
-    keySelectButtonCorner.CornerRadius = UDim.new(0, 6)
-    keySelectButtonCorner.Parent = keySelectButton
-    
-    local waitingForKey = false
-    keySelectButton.MouseButton1Click:Connect(function()
-        if not waitingForKey then
-            waitingForKey = true
-            keySelectButton.Text = "Press Key..."
-            
-            local connection
-            connection = UserInputService.InputBegan:Connect(function(input, processed)
-                if not processed and input.UserInputType == Enum.UserInputType.Keyboard then
-                    local keyCode = input.KeyCode
-                    if KeyNames[keyCode] then
-                        Settings.ToggleKey = keyCode
-                        keySelectButton.Text = KeyNames[keyCode]
-                        waitingForKey = false
-                        connection:Disconnect()
-                    end
-                end
-            end)
-            
-            -- Timeout after 5 seconds
-            task.wait(5)
-            if waitingForKey then
-                waitingForKey = false
-                keySelectButton.Text = KeyNames[Settings.ToggleKey] or "Insert"
-                connection:Disconnect()
-            end
-        end
-    end)
-    
-    -- Float Button Toggle
-    window.SettingsTab:CreateToggle({
-        Name = "Show Float Button",
-        Default = Settings.FloatButtonEnabled,
-        Callback = function(value)
-            Settings.FloatButtonEnabled = value
-            if window.FloatButton then
-                if window.ScreenGui.Enabled then
-                    window.FloatButton.Visible = false
-                else
-                    window.FloatButton.Visible = value
-                end
-            end
-        end
-    })
-    
-    table.insert(window.SettingsTab.Elements, keySelectFrame)
-    window.SettingsTab:UpdateCanvasSize()
     
     -- Dragging functionality
     local dragging = false
@@ -1151,6 +1050,115 @@ function Library:CreateWindow(config)
         
         return tab
     end
+    
+    -- Create Settings Tab after window initialization
+    task.wait()
+    window.SettingsTab = window:CreateTab({
+        Name = "Settings",
+        Icon = "⚙️"
+    })
+    
+    -- Settings Tab Content
+    window.SettingsTab:CreateSection("UI Settings")
+    
+    -- Toggle Key Setting
+    local keySelectFrame = Instance.new("Frame")
+    keySelectFrame.Name = "KeySelectFrame"
+    keySelectFrame.Size = UDim2.new(1, 0, 0, 50)
+    keySelectFrame.BackgroundColor3 = Theme.Background
+    keySelectFrame.BorderSizePixel = 0
+    keySelectFrame.LayoutOrder = #window.SettingsTab.Elements + 1
+    keySelectFrame.ZIndex = 5
+    keySelectFrame.Parent = window.SettingsTab.ContentScroll
+    
+    local keySelectCorner = Instance.new("UICorner")
+    keySelectCorner.CornerRadius = UDim.new(0, 8)
+    keySelectCorner.Parent = keySelectFrame
+    
+    local keySelectStroke = Instance.new("UIStroke")
+    keySelectStroke.Color = Theme.Border
+    keySelectStroke.Thickness = 1
+    keySelectStroke.Transparency = 0.7
+    keySelectStroke.Parent = keySelectFrame
+    
+    local keySelectLabel = Instance.new("TextLabel")
+    keySelectLabel.Size = UDim2.new(1, -120, 1, 0)
+    keySelectLabel.Position = UDim2.new(0, 10, 0, 0)
+    keySelectLabel.BackgroundTransparency = 1
+    keySelectLabel.Text = "Toggle Key"
+    keySelectLabel.TextColor3 = Theme.Text
+    keySelectLabel.TextSize = 12
+    keySelectLabel.Font = Enum.Font.Gotham
+    keySelectLabel.TextXAlignment = Enum.TextXAlignment.Left
+    keySelectLabel.ZIndex = 6
+    keySelectLabel.Parent = keySelectFrame
+    
+    local keySelectButton = Instance.new("TextButton")
+    keySelectButton.Name = "KeySelectButton"
+    keySelectButton.Size = UDim2.new(0, 100, 0, 30)
+    keySelectButton.Position = UDim2.new(1, -110, 0.5, -15)
+    keySelectButton.BackgroundColor3 = Theme.Primary
+    keySelectButton.BorderSizePixel = 0
+    keySelectButton.Text = KeyNames[Settings.ToggleKey] or "Insert"
+    keySelectButton.TextColor3 = Theme.Text
+    keySelectButton.TextSize = 11
+    keySelectButton.Font = Enum.Font.Gotham
+    keySelectButton.ZIndex = 6
+    keySelectButton.Parent = keySelectFrame
+    
+    local keySelectButtonCorner = Instance.new("UICorner")
+    keySelectButtonCorner.CornerRadius = UDim.new(0, 6)
+    keySelectButtonCorner.Parent = keySelectButton
+    
+    local waitingForKey = false
+    keySelectButton.MouseButton1Click:Connect(function()
+        if not waitingForKey then
+            waitingForKey = true
+            keySelectButton.Text = "Press Key..."
+            
+            local connection
+            connection = UserInputService.InputBegan:Connect(function(input, processed)
+                if not processed and input.UserInputType == Enum.UserInputType.Keyboard then
+                    local keyCode = input.KeyCode
+                    if KeyNames[keyCode] then
+                        Settings.ToggleKey = keyCode
+                        keySelectButton.Text = KeyNames[keyCode]
+                        waitingForKey = false
+                        connection:Disconnect()
+                    end
+                end
+            end)
+            
+            -- Timeout after 5 seconds
+            spawn(function()
+                wait(5)
+                if waitingForKey then
+                    waitingForKey = false
+                    keySelectButton.Text = KeyNames[Settings.ToggleKey] or "Insert"
+                    connection:Disconnect()
+                end
+            end)
+        end
+    end)
+    
+    -- Float Button Toggle
+    window.SettingsTab:CreateToggle({
+        Name = "Show Float Button",
+        Default = Settings.FloatButtonEnabled,
+        Callback = function(value)
+            Settings.FloatButtonEnabled = value
+            if window.FloatButton then
+                if window.ScreenGui.Enabled then
+                    window.FloatButton.Visible = false
+                else
+                    window.FloatButton.Visible = value
+                end
+            end
+        end
+    })
+    
+    table.insert(window.SettingsTab.Elements, keySelectFrame)
+    window.SettingsTab:UpdateCanvasSize()
     
     return window
 end
