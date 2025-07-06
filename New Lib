@@ -1,1210 +1,408 @@
---[NEW DOGHUB LIB]--
--- DOGHUB GUI Library - Simple & Clean Version
--- No complex dependencies, just pure Roblox API
+-- UI Library Framework
+local UILibrary = {}
+UILibrary.__index = UILibrary
 
-local DogHub = {}
-DogHub.__index = DogHub
-
--- Services
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-
--- Simple Config
-local config = {
-    MainColor = Color3.fromRGB(35, 35, 50),
-    AccentColor = Color3.fromRGB(255, 100, 100),
-    SecondaryColor = Color3.fromRGB(50, 50, 70),
-    TextColor = Color3.fromRGB(255, 255, 255),
-    DisabledColor = Color3.fromRGB(100, 100, 100)
+-- Storage for UI elements and configurations
+local windows = {}
+local tabs = {}
+local elements = {}
+local configurations = {}
+local theme = {
+    primary = {255, 255, 255},
+    secondary = {200, 200, 200},
+    accent = {100, 150, 255},
+    background = {45, 45, 45},
+    text = {255, 255, 255}
 }
 
--- Simple Settings (no file system)
-local settings = {
-    toggleKey = Enum.KeyCode.Insert,
-    theme = "Red"
-}
-
--- Theme Colors
-local themes = {
-    Red = {AccentColor = Color3.fromRGB(255, 100, 100)},
-    Blue = {AccentColor = Color3.fromRGB(100, 150, 255)},
-    Green = {AccentColor = Color3.fromRGB(100, 255, 150)},
-    Purple = {AccentColor = Color3.fromRGB(200, 100, 255)},
-    Orange = {AccentColor = Color3.fromRGB(255, 150, 100)}
-}
-
--- Change Theme
-function DogHub:SetTheme(themeName)
-    if themes[themeName] then
-        config.AccentColor = themes[themeName].AccentColor
-        settings.theme = themeName
-        DogHub:Notify("Theme Changed", "Changed to " .. themeName, 2)
-    end
+-- Utility functions
+local function generateId()
+    return tostring(math.random(100000, 999999))
 end
 
--- Create Window
-function DogHub:CreateWindow(title)
-    -- Destroy existing
-    if playerGui:FindFirstChild("DogHub") then
-        playerGui.DogHub:Destroy()
-    end
-    
+local function validateElement(element)
+    return element and type(element) == "table" and element.id
+end
+
+-- Window Functions
+function UILibrary.CreateWindow(title, width, height, x, y)
     local window = {
-        Title = title or "DOGHUB",
-        Tabs = {},
-        CurrentTab = nil
+        id = generateId(),
+        title = title or "Window",
+        width = width or 400,
+        height = height or 300,
+        x = x or 100,
+        y = y or 100,
+        visible = true,
+        draggable = true,
+        tabs = {},
+        elements = {}
     }
     
-    -- Main GUI
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "DogHub"
-    screenGui.Parent = playerGui
-    screenGui.ResetOnSpawn = false
-    
-    local main = Instance.new("Frame")
-    main.Name = "Main"
-    main.Size = UDim2.new(0, 550, 0, 400)
-    main.Position = UDim2.new(0.5, -275, 0.5, -200)
-    main.BackgroundColor3 = config.MainColor
-    main.BorderSizePixel = 0
-    main.Parent = screenGui
-    
-    -- Corner
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
-    corner.Parent = main
-    
-    -- Title Bar
-    local titleBar = Instance.new("Frame")
-    titleBar.Name = "TitleBar"
-    titleBar.Size = UDim2.new(1, 0, 0, 40)
-    titleBar.BackgroundColor3 = config.AccentColor
-    titleBar.BorderSizePixel = 0
-    titleBar.Parent = main
-    
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 10)
-    titleCorner.Parent = titleBar
-    
-    -- Fix bottom corners
-    local titleFix = Instance.new("Frame")
-    titleFix.Size = UDim2.new(1, 0, 0, 10)
-    titleFix.Position = UDim2.new(0, 0, 1, -10)
-    titleFix.BackgroundColor3 = config.AccentColor
-    titleFix.BorderSizePixel = 0
-    titleFix.Parent = titleBar
-    
-    -- Title Text
-    local titleText = Instance.new("TextLabel")
-    titleText.Size = UDim2.new(1, -120, 1, 0)
-    titleText.Position = UDim2.new(0, 15, 0, 0)
-    titleText.BackgroundTransparency = 1
-    titleText.Text = "🐕 " .. title
-    titleText.TextColor3 = config.TextColor
-    titleText.TextSize = 18
-    titleText.Font = Enum.Font.GothamBold
-    titleText.TextXAlignment = Enum.TextXAlignment.Left
-    titleText.Parent = titleBar
-    
-    -- Buttons Container
-    local buttonsFrame = Instance.new("Frame")
-    buttonsFrame.Size = UDim2.new(0, 110, 1, 0)
-    buttonsFrame.Position = UDim2.new(1, -115, 0, 0)
-    buttonsFrame.BackgroundTransparency = 1
-    buttonsFrame.Parent = titleBar
-    
-    -- Theme Button
-    local themeBtn = DogHub:CreateTitleButton(buttonsFrame, "🎨", UDim2.new(0, 5, 0.5, -12), function()
-        DogHub:ShowThemeMenu(main)
-    end)
-    
-    -- Minimize Button
-    local minimizeBtn = DogHub:CreateTitleButton(buttonsFrame, "−", UDim2.new(0, 35, 0.5, -12), function()
-        main.Visible = false
-        DogHub:Notify("Minimized", "Press " .. settings.toggleKey.Name .. " to show", 2)
-    end)
-    
-    -- Settings Button
-    local settingsBtn = DogHub:CreateTitleButton(buttonsFrame, "⚙", UDim2.new(0, 65, 0.5, -12), function()
-        DogHub:ShowSettings(main)
-    end)
-    
-    -- Destroy Button
-    local destroyBtn = DogHub:CreateTitleButton(buttonsFrame, "×", UDim2.new(0, 95, 0.5, -12), function()
-        screenGui:Destroy()
-        DogHub:Notify("Destroyed", "DOGHUB has been destroyed", 2)
-    end)
-    
-    -- Sidebar
-    local sidebar = Instance.new("Frame")
-    sidebar.Name = "Sidebar"
-    sidebar.Size = UDim2.new(0, 150, 1, -40)
-    sidebar.Position = UDim2.new(0, 0, 0, 40)
-    sidebar.BackgroundColor3 = config.SecondaryColor
-    sidebar.BorderSizePixel = 0
-    sidebar.Parent = main
-    
-    local sidebarScroll = Instance.new("ScrollingFrame")
-    sidebarScroll.Size = UDim2.new(1, 0, 1, 0)
-    sidebarScroll.BackgroundTransparency = 1
-    sidebarScroll.BorderSizePixel = 0
-    sidebarScroll.ScrollBarThickness = 0
-    sidebarScroll.Parent = sidebar
-    
-    local sidebarList = Instance.new("UIListLayout")
-    sidebarList.SortOrder = Enum.SortOrder.LayoutOrder
-    sidebarList.Padding = UDim.new(0, 2)
-    sidebarList.Parent = sidebarScroll
-    
-    -- Content Area
-    local content = Instance.new("Frame")
-    content.Name = "Content"
-    content.Size = UDim2.new(1, -150, 1, -40)
-    content.Position = UDim2.new(0, 150, 0, 40)
-    content.BackgroundColor3 = config.MainColor
-    content.BorderSizePixel = 0
-    content.Parent = main
-    
-    -- Store references
-    window.ScreenGui = screenGui
-    window.Main = main
-    window.Sidebar = sidebarScroll
-    window.Content = content
-    
-    -- Dragging
-    DogHub:MakeDraggable(titleBar, main)
-    
-    -- Toggle Key
-    DogHub:SetupToggle(main)
-    
-    -- Welcome
-    spawn(function()
-        wait(0.5)
-        DogHub:Notify("Welcome", "Welcome to DOGHUB! 🐕", 3)
-    end)
-    
+    windows[window.id] = window
     return window
 end
 
--- Create Title Button
-function DogHub:CreateTitleButton(parent, text, position, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 24, 0, 24)
-    btn.Position = position
-    btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    btn.BackgroundTransparency = 0.1
-    btn.BorderSizePixel = 0
-    btn.Text = text
-    btn.TextColor3 = config.TextColor
-    btn.TextSize = 14
-    btn.Font = Enum.Font.GothamBold
-    btn.Parent = parent
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 4)
-    corner.Parent = btn
-    
-    -- Hover effect
-    btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.3}):Play()
-    end)
-    
-    btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.1}):Play()
-    end)
-    
-    btn.MouseButton1Click:Connect(callback)
-    
-    return btn
-end
-
--- Show Theme Menu
-function DogHub:ShowThemeMenu(main)
-    local existing = main:FindFirstChild("ThemeMenu")
-    if existing then
-        existing:Destroy()
-        return
+-- Tab Functions
+function UILibrary.CreateTab(window, name)
+    if not validateElement(window) then
+        error("Invalid window provided")
     end
     
-    local themeMenu = Instance.new("Frame")
-    themeMenu.Name = "ThemeMenu"
-    themeMenu.Size = UDim2.new(0, 120, 0, 140)
-    themeMenu.Position = UDim2.new(0, 10, 0, 50)
-    themeMenu.BackgroundColor3 = config.SecondaryColor
-    themeMenu.BorderSizePixel = 0
-    themeMenu.Parent = main
-    themeMenu.ZIndex = 10
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = themeMenu
-    
-    local list = Instance.new("UIListLayout")
-    list.SortOrder = Enum.SortOrder.LayoutOrder
-    list.Padding = UDim.new(0, 2)
-    list.Parent = themeMenu
-    
-    local padding = Instance.new("UIPadding")
-    padding.PaddingAll = UDim.new(0, 5)
-    padding.Parent = themeMenu
-    
-    for themeName, _ in pairs(themes) do
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 25)
-        btn.BackgroundColor3 = (settings.theme == themeName) and config.AccentColor or Color3.fromRGB(70, 70, 90)
-        btn.BorderSizePixel = 0
-        btn.Text = themeName
-        btn.TextColor3 = config.TextColor
-        btn.TextSize = 12
-        btn.Font = Enum.Font.Gotham
-        btn.Parent = themeMenu
-        
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 4)
-        btnCorner.Parent = btn
-        
-        btn.MouseButton1Click:Connect(function()
-            DogHub:SetTheme(themeName)
-            themeMenu:Destroy()
-        end)
-    end
-    
-    -- Auto close
-    spawn(function()
-        wait(5)
-        if themeMenu.Parent then
-            themeMenu:Destroy()
-        end
-    end)
-end
-
--- Show Settings
-function DogHub:ShowSettings(main)
-    local existing = main:FindFirstChild("SettingsMenu")
-    if existing then
-        existing:Destroy()
-        return
-    end
-    
-    local settingsMenu = Instance.new("Frame")
-    settingsMenu.Name = "SettingsMenu"
-    settingsMenu.Size = UDim2.new(0, 200, 0, 120)
-    settingsMenu.Position = UDim2.new(0.5, -100, 0.5, -60)
-    settingsMenu.BackgroundColor3 = config.SecondaryColor
-    settingsMenu.BorderSizePixel = 0
-    settingsMenu.Parent = main
-    settingsMenu.ZIndex = 10
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = settingsMenu
-    
-    -- Title
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -30, 0, 30)
-    title.Position = UDim2.new(0, 10, 0, 5)
-    title.BackgroundTransparency = 1
-    title.Text = "⚙ Settings"
-    title.TextColor3 = config.TextColor
-    title.TextSize = 14
-    title.Font = Enum.Font.GothamBold
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = settingsMenu
-    
-    -- Close button
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 20, 0, 20)
-    closeBtn.Position = UDim2.new(1, -25, 0, 5)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-    closeBtn.BorderSizePixel = 0
-    closeBtn.Text = "×"
-    closeBtn.TextColor3 = config.TextColor
-    closeBtn.TextSize = 12
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.Parent = settingsMenu
-    
-    local closeBtnCorner = Instance.new("UICorner")
-    closeBtnCorner.CornerRadius = UDim.new(0, 4)
-    closeBtnCorner.Parent = closeBtn
-    
-    closeBtn.MouseButton1Click:Connect(function()
-        settingsMenu:Destroy()
-    end)
-    
-    -- Toggle Key Button
-    local toggleKeyBtn = Instance.new("TextButton")
-    toggleKeyBtn.Size = UDim2.new(1, -20, 0, 30)
-    toggleKeyBtn.Position = UDim2.new(0, 10, 0, 40)
-    toggleKeyBtn.BackgroundColor3 = config.AccentColor
-    toggleKeyBtn.BorderSizePixel = 0
-    toggleKeyBtn.Text = "Toggle Key: " .. settings.toggleKey.Name
-    toggleKeyBtn.TextColor3 = config.TextColor
-    toggleKeyBtn.TextSize = 12
-    toggleKeyBtn.Font = Enum.Font.Gotham
-    toggleKeyBtn.Parent = settingsMenu
-    
-    local toggleKeyCorner = Instance.new("UICorner")
-    toggleKeyCorner.CornerRadius = UDim.new(0, 4)
-    toggleKeyCorner.Parent = toggleKeyBtn
-    
-    toggleKeyBtn.MouseButton1Click:Connect(function()
-        DogHub:ChangeToggleKey(toggleKeyBtn)
-    end)
-    
-    -- Destroy Button
-    local destroyBtn = Instance.new("TextButton")
-    destroyBtn.Size = UDim2.new(1, -20, 0, 30)
-    destroyBtn.Position = UDim2.new(0, 10, 0, 80)
-    destroyBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-    destroyBtn.BorderSizePixel = 0
-    destroyBtn.Text = "🗑 Destroy UI"
-    destroyBtn.TextColor3 = config.TextColor
-    destroyBtn.TextSize = 12
-    destroyBtn.Font = Enum.Font.GothamBold
-    destroyBtn.Parent = settingsMenu
-    
-    local destroyCorner = Instance.new("UICorner")
-    destroyCorner.CornerRadius = UDim.new(0, 4)
-    destroyCorner.Parent = destroyBtn
-    
-    destroyBtn.MouseButton1Click:Connect(function()
-        main.Parent:Destroy()
-    end)
-end
-
--- Change Toggle Key
-function DogHub:ChangeToggleKey(button)
-    button.Text = "Press any key..."
-    
-    local connection
-    connection = UserInputService.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Keyboard then
-            settings.toggleKey = input.KeyCode
-            button.Text = "Toggle Key: " .. input.KeyCode.Name
-            connection:Disconnect()
-        end
-    end)
-end
-
--- Make Draggable
-function DogHub:MakeDraggable(handle, frame)
-    local dragging = false
-    local dragInput, mousePos, framePos
-    
-    handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            mousePos = input.Position
-            framePos = frame.Position
-        end
-    end)
-    
-    handle.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - mousePos
-            frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
-        end
-    end)
-    
-    handle.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-end
-
--- Setup Toggle
-function DogHub:SetupToggle(main)
-    UserInputService.InputBegan:Connect(function(input, processed)
-        if processed then return end
-        if input.KeyCode == settings.toggleKey then
-            main.Visible = not main.Visible
-        end
-    end)
-end
-
--- Create Tab
-function DogHub:CreateTab(window, name, icon)
     local tab = {
-        Name = name,
-        Icon = icon or "📄",
-        Elements = {}
+        id = generateId(),
+        name = name or "Tab",
+        window_id = window.id,
+        active = #window.tabs == 0, -- First tab is active by default
+        sections = {},
+        elements = {}
     }
     
-    -- Tab Button
-    local tabBtn = Instance.new("TextButton")
-    tabBtn.Size = UDim2.new(1, 0, 0, 35)
-    tabBtn.BackgroundColor3 = config.SecondaryColor
-    tabBtn.BorderSizePixel = 0
-    tabBtn.Text = tab.Icon .. " " .. name
-    tabBtn.TextColor3 = config.TextColor
-    tabBtn.TextSize = 12
-    tabBtn.Font = Enum.Font.Gotham
-    tabBtn.TextXAlignment = Enum.TextXAlignment.Left
-    tabBtn.Parent = window.Sidebar
-    
-    local tabPadding = Instance.new("UIPadding")
-    tabPadding.PaddingLeft = UDim.new(0, 10)
-    tabPadding.Parent = tabBtn
-    
-    -- Tab Content
-    local tabContent = Instance.new("ScrollingFrame")
-    tabContent.Name = name .. "Content"
-    tabContent.Size = UDim2.new(1, 0, 1, 0)
-    tabContent.BackgroundTransparency = 1
-    tabContent.BorderSizePixel = 0
-    tabContent.ScrollBarThickness = 4
-    tabContent.ScrollBarImageColor3 = config.AccentColor
-    tabContent.Visible = false
-    tabContent.Parent = window.Content
-    
-    local contentList = Instance.new("UIListLayout")
-    contentList.SortOrder = Enum.SortOrder.LayoutOrder
-    contentList.Padding = UDim.new(0, 5)
-    contentList.Parent = tabContent
-    
-    local contentPadding = Instance.new("UIPadding")
-    contentPadding.PaddingAll = UDim.new(0, 10)
-    contentPadding.Parent = tabContent
-    
-    tab.Content = tabContent
-    tab.Button = tabBtn
-    
-    -- Tab Click
-    tabBtn.MouseButton1Click:Connect(function()
-        -- Hide all tabs
-        for _, otherTab in pairs(window.Tabs) do
-            otherTab.Content.Visible = false
-            otherTab.Button.BackgroundColor3 = config.SecondaryColor
-        end
-        
-        -- Show this tab
-        tabContent.Visible = true
-        tabBtn.BackgroundColor3 = config.AccentColor
-        window.CurrentTab = tab
-    end)
-    
-    -- Auto select first tab
-    if #window.Tabs == 0 then
-        tabContent.Visible = true
-        tabBtn.BackgroundColor3 = config.AccentColor
-        window.CurrentTab = tab
-    end
-    
-    table.insert(window.Tabs, tab)
-    
-    -- Auto resize
-    spawn(function()
-        while tabContent.Parent do
-            wait(0.1)
-            tabContent.CanvasSize = UDim2.new(0, 0, 0, contentList.AbsoluteContentSize.Y + 20)
-        end
-    end)
-    
+    table.insert(window.tabs, tab)
+    tabs[tab.id] = tab
     return tab
 end
 
--- Create Toggle
-function DogHub:CreateToggle(tab, name, default, callback)
-    local toggle = {
-        Name = name,
-        Value = default or false,
-        Callback = callback or function() end
-    }
-    
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 35)
-    frame.BackgroundColor3 = config.SecondaryColor
-    frame.BorderSizePixel = 0
-    frame.Parent = tab.Content
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = frame
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -50, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = config.TextColor
-    label.TextSize = 12
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-    
-    local toggleBtn = Instance.new("TextButton")
-    toggleBtn.Size = UDim2.new(0, 35, 0, 20)
-    toggleBtn.Position = UDim2.new(1, -40, 0.5, -10)
-    toggleBtn.BackgroundColor3 = toggle.Value and config.AccentColor or config.DisabledColor
-    toggleBtn.BorderSizePixel = 0
-    toggleBtn.Text = ""
-    toggleBtn.Parent = frame
-    
-    local toggleCorner = Instance.new("UICorner")
-    toggleCorner.CornerRadius = UDim.new(0, 10)
-    toggleCorner.Parent = toggleBtn
-    
-    local indicator = Instance.new("Frame")
-    indicator.Size = UDim2.new(0, 16, 0, 16)
-    indicator.Position = toggle.Value and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
-    indicator.BackgroundColor3 = config.TextColor
-    indicator.BorderSizePixel = 0
-    indicator.Parent = toggleBtn
-    
-    local indicatorCorner = Instance.new("UICorner")
-    indicatorCorner.CornerRadius = UDim.new(0, 8)
-    indicatorCorner.Parent = indicator
-    
-    toggleBtn.MouseButton1Click:Connect(function()
-        toggle.Value = not toggle.Value
-        
-        local targetColor = toggle.Value and config.AccentColor or config.DisabledColor
-        local targetPos = toggle.Value and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
-        
-        TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()
-        TweenService:Create(indicator, TweenInfo.new(0.2), {Position = targetPos}):Play()
-        
-        toggle.Callback(toggle.Value)
-    end)
-    
-    table.insert(tab.Elements, toggle)
-    return toggle
-end
-
--- Create Button
-function DogHub:CreateButton(tab, name, callback)
-    local button = {
-        Name = name,
-        Callback = callback or function() end
-    }
-    
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 35)
-    btn.BackgroundColor3 = config.AccentColor
-    btn.BorderSizePixel = 0
-    btn.Text = name
-    btn.TextColor3 = config.TextColor
-    btn.TextSize = 12
-    btn.Font = Enum.Font.GothamBold
-    btn.Parent = tab.Content
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = btn
-    
-    -- Hover effect
-    btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.new(config.AccentColor.R + 0.1, config.AccentColor.G + 0.1, config.AccentColor.B + 0.1)}):Play()
-    end)
-    
-    btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = config.AccentColor}):Play()
-    end)
-    
-    btn.MouseButton1Click:Connect(function()
-        button.Callback()
-    end)
-    
-    table.insert(tab.Elements, button)
-    return button
-end
-
--- Create Slider
-function DogHub:CreateSlider(tab, name, min, max, default, callback)
-    local slider = {
-        Name = name,
-        Min = min or 0,
-        Max = max or 100,
-        Value = default or min or 0,
-        Callback = callback or function() end
-    }
-    
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 50)
-    frame.BackgroundColor3 = config.SecondaryColor
-    frame.BorderSizePixel = 0
-    frame.Parent = tab.Content
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = frame
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -50, 0, 20)
-    label.Position = UDim2.new(0, 10, 0, 5)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = config.TextColor
-    label.TextSize = 12
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-    
-    local valueLabel = Instance.new("TextLabel")
-    valueLabel.Size = UDim2.new(0, 40, 0, 20)
-    valueLabel.Position = UDim2.new(1, -45, 0, 5)
-    valueLabel.BackgroundTransparency = 1
-    valueLabel.Text = tostring(slider.Value)
-    valueLabel.TextColor3 = config.AccentColor
-    valueLabel.TextSize = 12
-    valueLabel.Font = Enum.Font.GothamBold
-    valueLabel.Parent = frame
-    
-    local track = Instance.new("Frame")
-    track.Size = UDim2.new(1, -20, 0, 4)
-    track.Position = UDim2.new(0, 10, 1, -15)
-    track.BackgroundColor3 = config.DisabledColor
-    track.BorderSizePixel = 0
-    track.Parent = frame
-    
-    local trackCorner = Instance.new("UICorner")
-    trackCorner.CornerRadius = UDim.new(0, 2)
-    trackCorner.Parent = track
-    
-    local fill = Instance.new("Frame")
-    fill.Size = UDim2.new((slider.Value - slider.Min) / (slider.Max - slider.Min), 0, 1, 0)
-    fill.BackgroundColor3 = config.AccentColor
-    fill.BorderSizePixel = 0
-    fill.Parent = track
-    
-    local fillCorner = Instance.new("UICorner")
-    fillCorner.CornerRadius = UDim.new(0, 2)
-    fillCorner.Parent = fill
-    
-    local handle = Instance.new("Frame")
-    handle.Size = UDim2.new(0, 12, 0, 12)
-    handle.Position = UDim2.new((slider.Value - slider.Min) / (slider.Max - slider.Min), -6, 0.5, -6)
-    handle.BackgroundColor3 = config.TextColor
-    handle.BorderSizePixel = 0
-    handle.Parent = track
-    
-    local handleCorner = Instance.new("UICorner")
-    handleCorner.CornerRadius = UDim.new(0, 6)
-    handleCorner.Parent = handle
-    
-    local dragging = false
-    
-    local function updateSlider(input)
-        local trackPos = track.AbsolutePosition.X
-        local trackSize = track.AbsoluteSize.X
-        local mousePos = input.Position.X
-        
-        local percent = math.clamp((mousePos - trackPos) / trackSize, 0, 1)
-        slider.Value = math.floor(slider.Min + (slider.Max - slider.Min) * percent)
-        
-        valueLabel.Text = tostring(slider.Value)
-        
-        TweenService:Create(fill, TweenInfo.new(0.1), {Size = UDim2.new(percent, 0, 1, 0)}):Play()
-        TweenService:Create(handle, TweenInfo.new(0.1), {Position = UDim2.new(percent, -6, 0.5, -6)}):Play()
-        
-        slider.Callback(slider.Value)
+function UILibrary.CreateSection(tab, name)
+    if not validateElement(tab) then
+        error("Invalid tab provided")
     end
     
-    track.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            updateSlider(input)
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            updateSlider(input)
-        end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-    
-    table.insert(tab.Elements, slider)
-    return slider
-end
-
--- Create Dropdown
-function DogHub:CreateDropdown(tab, name, options, default, callback)
-    local dropdown = {
-        Name = name,
-        Options = options or {},
-        Value = default or (options and options[1]) or "",
-        Callback = callback or function() end,
-        Open = false
-    }
-    
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 35)
-    frame.BackgroundColor3 = config.SecondaryColor
-    frame.BorderSizePixel = 0
-    frame.Parent = tab.Content
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = frame
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.4, 0, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = config.TextColor
-    label.TextSize = 12
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-    
-    local dropBtn = Instance.new("TextButton")
-    dropBtn.Size = UDim2.new(0.55, 0, 0, 25)
-    dropBtn.Position = UDim2.new(0.4, 10, 0.5, -12.5)
-    dropBtn.BackgroundColor3 = config.MainColor
-    dropBtn.BorderSizePixel = 0
-    dropBtn.Text = dropdown.Value .. " ▼"
-    dropBtn.TextColor3 = config.TextColor
-    dropBtn.TextSize = 11
-    dropBtn.Font = Enum.Font.Gotham
-    dropBtn.Parent = frame
-    
-    local dropCorner = Instance.new("UICorner")
-    dropCorner.CornerRadius = UDim.new(0, 4)
-    dropCorner.Parent = dropBtn
-    
-    -- Options container
-    local optionsContainer = Instance.new("Frame")
-    optionsContainer.Size = UDim2.new(0.55, 0, 0, 0)
-    optionsContainer.Position = UDim2.new(0.4, 10, 1, 5)
-    optionsContainer.BackgroundColor3 = config.MainColor
-    optionsContainer.BorderSizePixel = 0
-    optionsContainer.Visible = false
-    optionsContainer.Parent = frame
-    optionsContainer.ZIndex = 5
-    
-    local optionsCorner = Instance.new("UICorner")
-    optionsCorner.CornerRadius = UDim.new(0, 4)
-    optionsCorner.Parent = optionsContainer
-    
-    local optionsList = Instance.new("UIListLayout")
-    optionsList.SortOrder = Enum.SortOrder.LayoutOrder
-    optionsList.Parent = optionsContainer
-    
-    -- Create options
-    for _, option in ipairs(dropdown.Options) do
-        local optionBtn = Instance.new("TextButton")
-        optionBtn.Size = UDim2.new(1, 0, 0, 25)
-        optionBtn.BackgroundColor3 = config.MainColor
-        optionBtn.BorderSizePixel = 0
-        optionBtn.Text = option
-        optionBtn.TextColor3 = config.TextColor
-        optionBtn.TextSize = 11
-        optionBtn.Font = Enum.Font.Gotham
-        optionBtn.ZIndex = 6
-        optionBtn.Parent = optionsContainer
-        
-        optionBtn.MouseEnter:Connect(function()
-            optionBtn.BackgroundColor3 = config.AccentColor
-        end)
-        
-        optionBtn.MouseLeave:Connect(function()
-            optionBtn.BackgroundColor3 = config.MainColor
-        end)
-        
-        optionBtn.MouseButton1Click:Connect(function()
-            dropdown.Value = option
-            dropBtn.Text = option .. " ▼"
-            optionsContainer.Visible = false
-            dropdown.Open = false
-            frame.Size = UDim2.new(1, 0, 0, 35)
-            dropdown.Callback(option)
-        end)
-    end
-    
-    -- Toggle dropdown
-    dropBtn.MouseButton1Click:Connect(function()
-        dropdown.Open = not dropdown.Open
-        
-        if dropdown.Open then
-            local height = #dropdown.Options * 25
-            optionsContainer.Size = UDim2.new(0.55, 0, 0, height)
-            optionsContainer.Visible = true
-            frame.Size = UDim2.new(1, 0, 0, 35 + height + 5)
-            dropBtn.Text = dropdown.Value .. " ▲"
-        else
-            optionsContainer.Visible = false
-            frame.Size = UDim2.new(1, 0, 0, 35)
-            dropBtn.Text = dropdown.Value .. " ▼"
-        end
-    end)
-    
-    table.insert(tab.Elements, dropdown)
-    return dropdown
-end
-
--- Create Textbox
-function DogHub:CreateTextbox(tab, name, placeholder, callback)
-    local textbox = {
-        Name = name,
-        Value = "",
-        Placeholder = placeholder or "Enter text...",
-        Callback = callback or function() end
-    }
-    
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 35)
-    frame.BackgroundColor3 = config.SecondaryColor
-    frame.BorderSizePixel = 0
-    frame.Parent = tab.Content
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = frame
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.4, 0, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = config.TextColor
-    label.TextSize = 12
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-    
-    local input = Instance.new("TextBox")
-    input.Size = UDim2.new(0.55, 0, 0, 25)
-    input.Position = UDim2.new(0.4, 10, 0.5, -12.5)
-    input.BackgroundColor3 = config.MainColor
-    input.BorderSizePixel = 0
-    input.Text = ""
-    input.PlaceholderText = textbox.Placeholder
-    input.TextColor3 = config.TextColor
-    input.PlaceholderColor3 = config.DisabledColor
-    input.TextSize = 11
-    input.Font = Enum.Font.Gotham
-    input.Parent = frame
-    
-    local inputCorner = Instance.new("UICorner")
-    inputCorner.CornerRadius = UDim.new(0, 4)
-    inputCorner.Parent = input
-    
-    local inputPadding = Instance.new("UIPadding")
-    inputPadding.PaddingLeft = UDim.new(0, 8)
-    inputPadding.PaddingRight = UDim.new(0, 8)
-    inputPadding.Parent = input
-    
-    input.FocusLost:Connect(function()
-        textbox.Value = input.Text
-        textbox.Callback(input.Text)
-    end)
-    
-    table.insert(tab.Elements, textbox)
-    return textbox
-end
-
--- Create Label
-function DogHub:CreateLabel(tab, text)
-    local label = {
-        Name = "Label",
-        Text = text or "Label"
-    }
-    
-    local labelFrame = Instance.new("TextLabel")
-    labelFrame.Size = UDim2.new(1, 0, 0, 25)
-    labelFrame.BackgroundTransparency = 1
-    labelFrame.Text = text
-    labelFrame.TextColor3 = config.TextColor
-    labelFrame.TextSize = 12
-    labelFrame.Font = Enum.Font.Gotham
-    labelFrame.TextXAlignment = Enum.TextXAlignment.Left
-    labelFrame.Parent = tab.Content
-    
-    local labelPadding = Instance.new("UIPadding")
-    labelPadding.PaddingLeft = UDim.new(0, 10)
-    labelPadding.Parent = labelFrame
-    
-    table.insert(tab.Elements, label)
-    return label
-end
-
--- Create Section
-function DogHub:CreateSection(tab, name)
     local section = {
-        Name = name
+        id = generateId(),
+        name = name or "Section",
+        tab_id = tab.id,
+        elements = {}
     }
     
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 30)
-    frame.BackgroundTransparency = 1
-    frame.Parent = tab.Content
-    
-    local line = Instance.new("Frame")
-    line.Size = UDim2.new(1, -20, 0, 2)
-    line.Position = UDim2.new(0, 10, 1, -10)
-    line.BackgroundColor3 = config.AccentColor
-    line.BorderSizePixel = 0
-    line.Parent = frame
-    
-    local lineCorner = Instance.new("UICorner")
-    lineCorner.CornerRadius = UDim.new(0, 1)
-    lineCorner.Parent = line
-    
-    local sectionLabel = Instance.new("TextLabel")
-    sectionLabel.Size = UDim2.new(1, -20, 1, -15)
-    sectionLabel.Position = UDim2.new(0, 10, 0, 0)
-    sectionLabel.BackgroundTransparency = 1
-    sectionLabel.Text = "📂 " .. name
-    sectionLabel.TextColor3 = config.AccentColor
-    sectionLabel.TextSize = 13
-    sectionLabel.Font = Enum.Font.GothamBold
-    sectionLabel.TextXAlignment = Enum.TextXAlignment.Left
-    sectionLabel.Parent = frame
-    
-    table.insert(tab.Elements, section)
+    table.insert(tab.sections, section)
     return section
 end
 
--- Create Keybind
-function DogHub:CreateKeybind(tab, name, defaultKey, callback)
-    local keybind = {
-        Name = name,
-        Key = defaultKey or Enum.KeyCode.F,
-        Callback = callback or function() end,
-        Listening = false
+-- UI Elements
+function UILibrary.CreateButton(parent, text, callback)
+    local button = {
+        id = generateId(),
+        type = "button",
+        text = text or "Button",
+        callback = callback or function() end,
+        parent_id = parent.id,
+        enabled = true,
+        visible = true
     }
     
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 35)
-    frame.BackgroundColor3 = config.SecondaryColor
-    frame.BorderSizePixel = 0
-    frame.Parent = tab.Content
+    table.insert(parent.elements, button)
+    elements[button.id] = button
+    return button
+end
+
+function UILibrary.CreateToggle(parent, text, default_value, callback)
+    local toggle = {
+        id = generateId(),
+        type = "toggle",
+        text = text or "Toggle",
+        value = default_value or false,
+        callback = callback or function() end,
+        parent_id = parent.id,
+        enabled = true,
+        visible = true
+    }
     
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = frame
+    table.insert(parent.elements, toggle)
+    elements[toggle.id] = toggle
+    return toggle
+end
+
+function UILibrary.CreateSlider(parent, text, min_value, max_value, default_value, callback)
+    local slider = {
+        id = generateId(),
+        type = "slider",
+        text = text or "Slider",
+        min = min_value or 0,
+        max = max_value or 100,
+        value = default_value or 50,
+        callback = callback or function() end,
+        parent_id = parent.id,
+        enabled = true,
+        visible = true
+    }
     
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.6, 0, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = config.TextColor
-    label.TextSize = 12
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
+    table.insert(parent.elements, slider)
+    elements[slider.id] = slider
+    return slider
+end
+
+function UILibrary.CreateDropdown(parent, text, options, default_index, callback)
+    local dropdown = {
+        id = generateId(),
+        type = "dropdown",
+        text = text or "Dropdown",
+        options = options or {"Option 1", "Option 2"},
+        selected_index = default_index or 1,
+        callback = callback or function() end,
+        parent_id = parent.id,
+        enabled = true,
+        visible = true
+    }
     
-    local keyBtn = Instance.new("TextButton")
-    keyBtn.Size = UDim2.new(0.35, 0, 0, 25)
-    keyBtn.Position = UDim2.new(0.6, 10, 0.5, -12.5)
-    keyBtn.BackgroundColor3 = config.MainColor
-    keyBtn.BorderSizePixel = 0
-    keyBtn.Text = keybind.Key.Name
-    keyBtn.TextColor3 = config.TextColor
-    keyBtn.TextSize = 11
-    keyBtn.Font = Enum.Font.GothamBold
-    keyBtn.Parent = frame
+    table.insert(parent.elements, dropdown)
+    elements[dropdown.id] = dropdown
+    return dropdown
+end
+
+function UILibrary.CreateInput(parent, text, placeholder, callback)
+    local input = {
+        id = generateId(),
+        type = "input",
+        text = text or "Input",
+        placeholder = placeholder or "Enter text...",
+        value = "",
+        callback = callback or function() end,
+        parent_id = parent.id,
+        enabled = true,
+        visible = true
+    }
     
-    local keyCorner = Instance.new("UICorner")
-    keyCorner.CornerRadius = UDim.new(0, 4)
-    keyCorner.Parent = keyBtn
+    table.insert(parent.elements, input)
+    elements[input.id] = input
+    return input
+end
+
+function UILibrary.CreateParagraph(parent, text)
+    local paragraph = {
+        id = generateId(),
+        type = "paragraph",
+        text = text or "Paragraph text",
+        parent_id = parent.id,
+        visible = true
+    }
     
-    -- Keybind listening
-    keyBtn.MouseButton1Click:Connect(function()
-        if not keybind.Listening then
-            keybind.Listening = true
-            keyBtn.Text = "..."
-            keyBtn.BackgroundColor3 = config.AccentColor
-        end
-    end)
+    table.insert(parent.elements, paragraph)
+    elements[paragraph.id] = paragraph
+    return paragraph
+end
+
+function UILibrary.CreateLabel(parent, text)
+    local label = {
+        id = generateId(),
+        type = "label",
+        text = text or "Label",
+        parent_id = parent.id,
+        visible = true
+    }
     
-    UserInputService.InputBegan:Connect(function(input, processed)
-        if processed then return end
-        
-        if keybind.Listening and input.UserInputType == Enum.UserInputType.Keyboard then
-            keybind.Key = input.KeyCode
-            keyBtn.Text = input.KeyCode.Name
-            keyBtn.BackgroundColor3 = config.MainColor
-            keybind.Listening = false
-        elseif not keybind.Listening and input.KeyCode == keybind.Key then
-            keybind.Callback()
-        end
-    end)
+    table.insert(parent.elements, label)
+    elements[label.id] = label
+    return label
+end
+
+function UILibrary.CreateKeybind(parent, text, default_key, callback)
+    local keybind = {
+        id = generateId(),
+        type = "keybind",
+        text = text or "Keybind",
+        key = default_key or "None",
+        callback = callback or function() end,
+        parent_id = parent.id,
+        enabled = true,
+        visible = true
+    }
     
-    table.insert(tab.Elements, keybind)
+    table.insert(parent.elements, keybind)
+    elements[keybind.id] = keybind
     return keybind
 end
 
--- Simple Notification System
-function DogHub:Notify(title, text, duration)
-    duration = duration or 3
+-- System / Utility Functions
+function UILibrary.Notify(title, message, duration)
+    local notification = {
+        title = title or "Notification",
+        message = message or "",
+        duration = duration or 3000,
+        timestamp = os.time()
+    }
     
-    -- Remove old notifications
-    for _, gui in pairs(playerGui:GetChildren()) do
-        if gui.Name == "DogHubNotification" then
-            gui:Destroy()
+    -- Here you would implement the actual notification display logic
+    print(string.format("[%s] %s", notification.title, notification.message))
+    return notification
+end
+
+function UILibrary.Set(element, property, value)
+    if not validateElement(element) then
+        return false
+    end
+    
+    if element[property] ~= nil then
+        local old_value = element[property]
+        element[property] = value
+        
+        -- Trigger callback if it's a value change
+        if property == "value" and element.callback then
+            element.callback(value, old_value)
+        end
+        
+        return true
+    end
+    
+    return false
+end
+
+function UILibrary.Get(element, property)
+    if not validateElement(element) then
+        return nil
+    end
+    
+    return element[property]
+end
+
+function UILibrary.Destroy(element)
+    if not validateElement(element) then
+        return false
+    end
+    
+    -- Remove from parent's elements list
+    for _, window in pairs(windows) do
+        for i, elem in ipairs(window.elements) do
+            if elem.id == element.id then
+                table.remove(window.elements, i)
+                break
+            end
+        end
+        
+        for _, tab in ipairs(window.tabs) do
+            for i, elem in ipairs(tab.elements) do
+                if elem.id == element.id then
+                    table.remove(tab.elements, i)
+                    break
+                end
+            end
+            
+            for _, section in ipairs(tab.sections) do
+                for i, elem in ipairs(section.elements) do
+                    if elem.id == element.id then
+                        table.remove(section.elements, i)
+                        break
+                    end
+                end
+            end
         end
     end
     
-    local notifGui = Instance.new("ScreenGui")
-    notifGui.Name = "DogHubNotification"
-    notifGui.Parent = playerGui
-    
-    local notif = Instance.new("Frame")
-    notif.Size = UDim2.new(0, 300, 0, 80)
-    notif.Position = UDim2.new(1, 10, 1, -90)
-    notif.BackgroundColor3 = config.MainColor
-    notif.BorderSizePixel = 0
-    notif.Parent = notifGui
-    
-    local notifCorner = Instance.new("UICorner")
-    notifCorner.CornerRadius = UDim.new(0, 8)
-    notifCorner.Parent = notif
-    
-    local notifStroke = Instance.new("UIStroke")
-    notifStroke.Color = config.AccentColor
-    notifStroke.Thickness = 2
-    notifStroke.Parent = notif
-    
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, -20, 0, 25)
-    titleLabel.Position = UDim2.new(0, 10, 0, 5)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = title
-    titleLabel.TextColor3 = config.AccentColor
-    titleLabel.TextSize = 14
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    titleLabel.Parent = notif
-    
-    local textLabel = Instance.new("TextLabel")
-    textLabel.Size = UDim2.new(1, -20, 0, 40)
-    textLabel.Position = UDim2.new(0, 10, 0, 30)
-    textLabel.BackgroundTransparency = 1
-    textLabel.Text = text
-    textLabel.TextColor3 = config.TextColor
-    textLabel.TextSize = 12
-    textLabel.Font = Enum.Font.Gotham
-    textLabel.TextXAlignment = Enum.TextXAlignment.Left
-    textLabel.TextWrapped = true
-    textLabel.Parent = notif
-    
-    -- Animate in
-    notif:TweenPosition(
-        UDim2.new(1, -310, 1, -90),
-        "Out",
-        "Quart",
-        0.5,
-        true
-    )
-    
-    -- Auto remove
-    spawn(function()
-        wait(duration)
-        notif:TweenPosition(
-            UDim2.new(1, 10, 1, -90),
-            "In",
-            "Quart",
-            0.5,
-            true
-        )
-        wait(0.5)
-        notifGui:Destroy()
-    end)
+    -- Remove from global elements
+    elements[element.id] = nil
+    return true
 end
 
--- Example Usage
-function DogHub:Example()
-    local window = self:CreateWindow("DOGHUB Simple")
+-- Optional Functions
+function UILibrary.SaveConfiguration(filename)
+    filename = filename or "config.json"
     
-    -- Tabs
-    local mainTab = self:CreateTab(window, "Main", "🏠")
-    local farmTab = self:CreateTab(window, "Farm", "🌾")
-    local playerTab = self:CreateTab(window, "Player", "👤")
-    local miscTab = self:CreateTab(window, "Misc", "⚙️")
+    local config = {
+        windows = windows,
+        tabs = tabs,
+        elements = elements,
+        theme = theme,
+        timestamp = os.time()
+    }
     
-    -- Main Tab
-    self:CreateSection(mainTab, "Welcome")
-    self:CreateLabel(mainTab, "Welcome to DOGHUB! Simple and clean.")
+    configurations[filename] = config
     
-    self:CreateToggle(mainTab, "Test Toggle", false, function(value)
-        print("Test Toggle:", value)
-    end)
-    
-    self:CreateButton(mainTab, "Test Button", function()
-        self:Notify("Button", "Button clicked!", 2)
-    end)
-    
-    self:CreateSlider(mainTab, "Test Slider", 0, 100, 50, function(value)
-        print("Slider Value:", value)
-    end)
-    
-    -- Farm Tab
-    self:CreateSection(farmTab, "Auto Farm")
-    
-    self:CreateToggle(farmTab, "Auto Farm", false, function(value)
-        print("Auto Farm:", value)
-        if value then
-            self:Notify("Farm", "Auto farm enabled!", 2)
-        end
-    end)
-    
-    self:CreateSlider(farmTab, "Farm Speed", 1, 10, 5, function(value)
-        print("Farm Speed:", value)
-    end)
-    
-    self:CreateDropdown(farmTab, "Farm Type", {"Coins", "XP", "Items"}, "Coins", function(value)
-        print("Farm Type:", value)
-    end)
-    
-    self:CreateKeybind(farmTab, "Toggle Farm", Enum.KeyCode.F, function()
-        self:Notify("Keybind", "Farm toggled!", 1)
-    end)
-    
-    -- Player Tab
-    self:CreateSection(playerTab, "Movement")
-    
-    self:CreateSlider(playerTab, "Walk Speed", 16, 100, 16, function(value)
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.WalkSpeed = value
-        end
-    end)
-    
-    self:CreateSlider(playerTab, "Jump Power", 50, 200, 50, function(value)
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.JumpPower = value
-        end
-    end)
-    
-    self:CreateToggle(playerTab, "Infinite Jump", false, function(value)
-        print("Infinite Jump:", value)
-    end)
-    
-    -- Misc Tab
-    self:CreateSection(miscTab, "Settings")
-    
-    self:CreateDropdown(miscTab, "Theme", {"Red", "Blue", "Green", "Purple", "Orange"}, settings.theme, function(value)
-        self:SetTheme(value)
-    end)
-    
-    self:CreateTextbox(miscTab, "Custom Text", "Type here...", function(text)
-        if text ~= "" then
-            self:Notify("Text", "You typed: " .. text, 2)
-        end
-    end)
-    
-    self:CreateButton(miscTab, "Rejoin Game", function()
-        game:GetService("TeleportService"):Teleport(game.PlaceId, player)
-    end)
-    
-    self:CreateLabel(miscTab, "")
-    self:CreateLabel(miscTab, "Made by DOGHUB Team 🐕")
-    
-    return window
+    -- In a real implementation, you would save to file
+    print("Configuration saved to " .. filename)
+    return true
 end
 
-return DogHub
+function UILibrary.LoadConfiguration(filename)
+    filename = filename or "config.json"
+    
+    if configurations[filename] then
+        local config = configurations[filename]
+        windows = config.windows or {}
+        tabs = config.tabs or {}
+        elements = config.elements or {}
+        theme = config.theme or theme
+        
+        print("Configuration loaded from " .. filename)
+        return true
+    end
+    
+    print("Configuration file not found: " .. filename)
+    return false
+end
+
+function UILibrary.SetThemeColor(color_name, r, g, b)
+    if theme[color_name] then
+        theme[color_name] = {r, g, b}
+        return true
+    end
+    return false
+end
+
+function UILibrary.SetDraggable(window, draggable)
+    if not validateElement(window) then
+        return false
+    end
+    
+    window.draggable = draggable
+    return true
+end
+
+-- Helper function to get all elements
+function UILibrary.GetAllElements()
+    return elements
+end
+
+-- Helper function to get all windows
+function UILibrary.GetAllWindows()
+    return windows
+end
+
+-- Example usage
+function UILibrary.Example()
+    -- Create a window
+    local mainWindow = UILibrary.CreateWindow("Main Window", 500, 400, 100, 100)
+    
+    -- Create tabs
+    local homeTab = UILibrary.CreateTab(mainWindow, "Home")
+    local settingsTab = UILibrary.CreateTab(mainWindow, "Settings")
+    
+    -- Create sections
+    local generalSection = UILibrary.CreateSection(homeTab, "General")
+    local controlsSection = UILibrary.CreateSection(settingsTab, "Controls")
+    
+    -- Create UI elements
+    local button = UILibrary.CreateButton(generalSection, "Click Me!", function()
+        UILibrary.Notify("Button Clicked", "The button was pressed!")
+    end)
+    
+    local toggle = UILibrary.CreateToggle(generalSection, "Enable Feature", true, function(value)
+        print("Toggle changed to:", value)
+    end)
+    
+    local slider = UILibrary.CreateSlider(generalSection, "Volume", 0, 100, 50, function(value)
+        print("Volume set to:", value)
+    end)
+    
+    local dropdown = UILibrary.CreateDropdown(settingsTab, "Theme", {"Dark", "Light", "Auto"}, 1, function(index)
+        print("Theme changed to:", index)
+    end)
+    
+    local input = UILibrary.CreateInput(settingsTab, "Username", "Enter your name...", function(text)
+        print("Username:", text)
+    end)
+    
+    local keybind = UILibrary.CreateKeybind(controlsSection, "Jump", "SPACE", function()
+        print("Jump key pressed!")
+    end)
+    
+    -- Add some labels and paragraphs
+    UILibrary.CreateLabel(generalSection, "Welcome to the UI Library!")
+    UILibrary.CreateParagraph(generalSection, "This is an example of how to use the UI library functions.")
+    
+    -- Save configuration
+    UILibrary.SaveConfiguration("example_config.json")
+    
+    return mainWindow
+end
+
+return UILibrary
