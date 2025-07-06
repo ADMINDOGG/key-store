@@ -15,12 +15,14 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 -- Library Configuration
 local config = {
-    MainColor = Color3.fromRGB(45, 45, 55),
-    AccentColor = Color3.fromRGB(85, 125, 255),
-    BackgroundColor = Color3.fromRGB(35, 35, 45),
+    MainColor = Color3.fromRGB(40, 50, 65),
+    AccentColor = Color3.fromRGB(255, 140, 0), -- Orange
+    SecondaryAccent = Color3.fromRGB(0, 191, 255), -- Blue
+    BackgroundColor = Color3.fromRGB(25, 35, 45),
     TextColor = Color3.fromRGB(255, 255, 255),
     DisabledColor = Color3.fromRGB(100, 100, 100),
     SuccessColor = Color3.fromRGB(85, 255, 125),
+    OutlineColor = Color3.fromRGB(255, 140, 0),
     AnimationSpeed = 0.2
 }
 
@@ -53,6 +55,12 @@ function DogHub:CreateWindow(title)
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = mainFrame
     
+    -- Add outline stroke
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = config.OutlineColor
+    stroke.Thickness = 2
+    stroke.Parent = mainFrame
+    
     -- Title Bar
     local titleBar = Instance.new("Frame")
     titleBar.Name = "TitleBar"
@@ -66,10 +74,34 @@ function DogHub:CreateWindow(title)
     titleCorner.CornerRadius = UDim.new(0, 8)
     titleCorner.Parent = titleBar
     
+    -- Minimize Button
+    local minimizeBtn = Instance.new("TextButton")
+    minimizeBtn.Name = "MinimizeBtn"
+    minimizeBtn.Size = UDim2.new(0, 25, 0, 25)
+    minimizeBtn.Position = UDim2.new(1, -55, 0, 2.5)
+    minimizeBtn.BackgroundTransparency = 1
+    minimizeBtn.Text = "-"
+    minimizeBtn.TextColor3 = config.TextColor
+    minimizeBtn.TextScaled = true
+    minimizeBtn.Font = Enum.Font.GothamBold
+    minimizeBtn.Parent = titleBar
+    
+    -- Close Button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseBtn"
+    closeBtn.Size = UDim2.new(0, 25, 0, 25)
+    closeBtn.Position = UDim2.new(1, -30, 0, 2.5)
+    closeBtn.BackgroundTransparency = 1
+    closeBtn.Text = "×"
+    closeBtn.TextColor3 = config.TextColor
+    closeBtn.TextScaled = true
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.Parent = titleBar
+    
     -- Title Text
     local titleText = Instance.new("TextLabel")
     titleText.Name = "Title"
-    titleText.Size = UDim2.new(1, -60, 1, 0)
+    titleText.Size = UDim2.new(1, -85, 1, 0)
     titleText.Position = UDim2.new(0, 10, 0, 0)
     titleText.BackgroundTransparency = 1
     titleText.Text = window.Title
@@ -77,18 +109,6 @@ function DogHub:CreateWindow(title)
     titleText.TextScaled = true
     titleText.Font = Enum.Font.GothamBold
     titleText.Parent = titleBar
-    
-    -- Minimize Button
-    local minimizeBtn = Instance.new("TextButton")
-    minimizeBtn.Name = "MinimizeBtn"
-    minimizeBtn.Size = UDim2.new(0, 25, 0, 25)
-    minimizeBtn.Position = UDim2.new(1, -30, 0, 2.5)
-    minimizeBtn.BackgroundTransparency = 1
-    minimizeBtn.Text = "-"
-    minimizeBtn.TextColor3 = config.TextColor
-    minimizeBtn.TextScaled = true
-    minimizeBtn.Font = Enum.Font.GothamBold
-    minimizeBtn.Parent = titleBar
     
     -- Sidebar
     local sidebar = Instance.new("Frame")
@@ -99,6 +119,12 @@ function DogHub:CreateWindow(title)
     sidebar.BorderSizePixel = 0
     sidebar.Parent = mainFrame
     
+    -- Sidebar outline
+    local sidebarStroke = Instance.new("UIStroke")
+    sidebarStroke.Color = config.OutlineColor
+    sidebarStroke.Thickness = 1
+    sidebarStroke.Parent = sidebar
+    
     -- Content Area
     local contentArea = Instance.new("Frame")
     contentArea.Name = "ContentArea"
@@ -107,6 +133,12 @@ function DogHub:CreateWindow(title)
     contentArea.BackgroundColor3 = config.MainColor
     contentArea.BorderSizePixel = 0
     contentArea.Parent = mainFrame
+    
+    -- Content area outline
+    local contentStroke = Instance.new("UIStroke")
+    contentStroke.Color = config.OutlineColor
+    contentStroke.Thickness = 1
+    contentStroke.Parent = contentArea
     
     -- Sidebar ScrollingFrame
     local sidebarScroll = Instance.new("ScrollingFrame")
@@ -129,6 +161,13 @@ function DogHub:CreateWindow(title)
     window.Sidebar = sidebarScroll
     window.ContentArea = contentArea
     window.MinimizeBtn = minimizeBtn
+    window.CloseBtn = closeBtn
+    
+    -- Welcome notification
+    spawn(function()
+        wait(0.5)
+        DogHub:CreateNotification("DOGHUB", "Welcome to DOGHUB! 🐕", 3)
+    end)
     
     -- Make draggable
     local dragging = false
@@ -162,6 +201,22 @@ function DogHub:CreateWindow(title)
         minimizeBtn.Text = window.Minimized and "+" or "-"
         
         TweenService:Create(mainFrame, TweenInfo.new(config.AnimationSpeed), {Size = targetSize}):Play()
+    end)
+    
+    -- Close function (hide UI temporarily)
+    closeBtn.MouseButton1Click:Connect(function()
+        mainFrame.Visible = false
+    end)
+    
+    -- Toggle keybind (Insert key to show/hide)
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode == Enum.KeyCode.Insert then
+            mainFrame.Visible = not mainFrame.Visible
+            if mainFrame.Visible then
+                DogHub:CreateNotification("DOGHUB", "UI Opened! Press Insert to toggle", 2)
+            end
+        end
     end)
     
     return window
@@ -259,6 +314,13 @@ function DogHub:CreateToggle(tab, name, defaultValue, callback)
     toggleCorner.CornerRadius = UDim.new(0, 6)
     toggleCorner.Parent = toggleFrame
     
+    -- Add outline to toggle
+    local toggleStroke = Instance.new("UIStroke")
+    toggleStroke.Color = config.OutlineColor
+    toggleStroke.Thickness = 1
+    toggleStroke.Transparency = 0.7
+    toggleStroke.Parent = toggleFrame
+    
     local toggleLabel = Instance.new("TextLabel")
     toggleLabel.Name = "Label"
     toggleLabel.Size = UDim2.new(1, -50, 1, 0)
@@ -283,6 +345,12 @@ function DogHub:CreateToggle(tab, name, defaultValue, callback)
     local btnCorner = Instance.new("UICorner")
     btnCorner.CornerRadius = UDim.new(0, 10)
     btnCorner.Parent = toggleBtn
+    
+    -- Add outline to toggle button
+    local btnStroke = Instance.new("UIStroke")
+    btnStroke.Color = config.SecondaryAccent
+    btnStroke.Thickness = 1
+    btnStroke.Parent = toggleBtn
     
     local toggleIndicator = Instance.new("Frame")
     toggleIndicator.Name = "Indicator"
@@ -462,9 +530,15 @@ function DogHub:CreateButton(tab, name, callback)
     buttonCorner.CornerRadius = UDim.new(0, 6)
     buttonCorner.Parent = buttonFrame
     
+    -- Add outline to button
+    local buttonStroke = Instance.new("UIStroke")
+    buttonStroke.Color = config.SecondaryAccent
+    buttonStroke.Thickness = 2
+    buttonStroke.Parent = buttonFrame
+    
     -- Button animations
     buttonFrame.MouseEnter:Connect(function()
-        TweenService:Create(buttonFrame, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(95, 135, 255)}):Play()
+        TweenService:Create(buttonFrame, TweenInfo.new(0.1), {BackgroundColor3 = config.SecondaryAccent}):Play()
     end)
     
     buttonFrame.MouseLeave:Connect(function()
@@ -764,11 +838,20 @@ function DogHub:CreateSection(tab, name)
     
     local sectionLine = Instance.new("Frame")
     sectionLine.Name = "Line"
-    sectionLine.Size = UDim2.new(1, -20, 0, 1)
+    sectionLine.Size = UDim2.new(1, -20, 0, 2)
     sectionLine.Position = UDim2.new(0, 10, 1, -15)
     sectionLine.BackgroundColor3 = config.AccentColor
     sectionLine.BorderSizePixel = 0
     sectionLine.Parent = sectionFrame
+    
+    -- Add gradient effect to section line
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, config.AccentColor),
+        ColorSequenceKeypoint.new(0.5, config.SecondaryAccent),
+        ColorSequenceKeypoint.new(1, config.AccentColor)
+    }
+    gradient.Parent = sectionLine
     
     local sectionLabel = Instance.new("TextLabel")
     sectionLabel.Name = "SectionLabel"
@@ -776,7 +859,7 @@ function DogHub:CreateSection(tab, name)
     sectionLabel.Position = UDim2.new(0, 10, 0, 0)
     sectionLabel.BackgroundTransparency = 1
     sectionLabel.Text = name
-    sectionLabel.TextColor3 = config.AccentColor
+    sectionLabel.TextColor3 = config.SecondaryAccent
     sectionLabel.TextScaled = true
     sectionLabel.Font = Enum.Font.GothamBold
     sectionLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -812,7 +895,7 @@ function DogHub:CreateNotification(title, text, duration)
     titleLabel.Position = UDim2.new(0, 10, 0, 5)
     titleLabel.BackgroundTransparency = 1
     titleLabel.Text = title
-    titleLabel.TextColor3 = config.AccentColor
+    titleLabel.TextColor3 = config.SecondaryAccent
     titleLabel.TextScaled = true
     titleLabel.Font = Enum.Font.GothamBold
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
