@@ -1,4 +1,7 @@
--- DOGHUB GUI Library
+local sectionLabel = Instance.new("TextLabel")
+    sectionLabel.Name = "SectionLabel"
+    sectionLabel.Size = UDim2.new(1, 0, 1, -10)
+    sectionLabel.Position-- DOGHUB GUI Library
 -- Complete GUI library with all components
 
 local DogHub = {}
@@ -15,14 +18,15 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 -- Library Configuration
 local config = {
-    MainColor = Color3.fromRGB(40, 50, 65),
-    AccentColor = Color3.fromRGB(255, 140, 0), -- Orange
-    SecondaryAccent = Color3.fromRGB(0, 191, 255), -- Blue
-    BackgroundColor = Color3.fromRGB(25, 35, 45),
-    TextColor = Color3.fromRGB(255, 255, 255),
-    DisabledColor = Color3.fromRGB(100, 100, 100),
-    SuccessColor = Color3.fromRGB(85, 255, 125),
-    OutlineColor = Color3.fromRGB(255, 140, 0),
+    MainColor = Color3.fromRGB(5, 15, 10),
+    AccentColor = Color3.fromRGB(0, 255, 100), -- Matrix Green
+    SecondaryAccent = Color3.fromRGB(0, 200, 80), -- Darker Green
+    BackgroundColor = Color3.fromRGB(0, 10, 5),
+    TextColor = Color3.fromRGB(0, 255, 100),
+    DisabledColor = Color3.fromRGB(40, 60, 45),
+    SuccessColor = Color3.fromRGB(0, 255, 150),
+    OutlineColor = Color3.fromRGB(0, 255, 100),
+    DangerColor = Color3.fromRGB(255, 50, 50),
     AnimationSpeed = 0.2
 }
 
@@ -62,11 +66,26 @@ function DogHub:CreateWindow(title)
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = mainFrame
     
-    -- Add outline stroke
+    -- Add outline stroke with glow effect
     local stroke = Instance.new("UIStroke")
     stroke.Color = config.OutlineColor
-    stroke.Thickness = 2
+    stroke.Thickness = 3
     stroke.Parent = mainFrame
+    
+    -- Add shadow/glow effect
+    local shadow = Instance.new("Frame")
+    shadow.Name = "Shadow"
+    shadow.Size = UDim2.new(1, 10, 1, 10)
+    shadow.Position = UDim2.new(0, -5, 0, -5)
+    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.BackgroundTransparency = 0.7
+    shadow.BorderSizePixel = 0
+    shadow.ZIndex = -1
+    shadow.Parent = mainFrame
+    
+    local shadowCorner = Instance.new("UICorner")
+    shadowCorner.CornerRadius = UDim.new(0, 12)
+    shadowCorner.Parent = shadow
     
     -- Title Bar
     local titleBar = Instance.new("Frame")
@@ -81,41 +100,65 @@ function DogHub:CreateWindow(title)
     titleCorner.CornerRadius = UDim.new(0, 8)
     titleCorner.Parent = titleBar
     
-    -- Minimize Button
+    -- Minimize Button with hacker style
     local minimizeBtn = Instance.new("TextButton")
     minimizeBtn.Name = "MinimizeBtn"
     minimizeBtn.Size = UDim2.new(0, 25, 0, 25)
     minimizeBtn.Position = UDim2.new(1, -55, 0, 2.5)
-    minimizeBtn.BackgroundTransparency = 1
-    minimizeBtn.Text = "-"
-    minimizeBtn.TextColor3 = config.TextColor
+    minimizeBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    minimizeBtn.Text = "[ - ]"
+    minimizeBtn.TextColor3 = config.AccentColor
     minimizeBtn.TextScaled = true
-    minimizeBtn.Font = Enum.Font.GothamBold
+    minimizeBtn.Font = Enum.Font.Code
     minimizeBtn.Parent = titleBar
     
-    -- Close Button
+    local minCorner = Instance.new("UICorner")
+    minCorner.CornerRadius = UDim.new(0, 4)
+    minCorner.Parent = minimizeBtn
+    
+    local minStroke = Instance.new("UIStroke")
+    minStroke.Color = config.AccentColor
+    minStroke.Thickness = 1
+    minStroke.Parent = minimizeBtn
+    
+    -- Close Button with hacker style
     local closeBtn = Instance.new("TextButton")
     closeBtn.Name = "CloseBtn"
     closeBtn.Size = UDim2.new(0, 25, 0, 25)
     closeBtn.Position = UDim2.new(1, -30, 0, 2.5)
-    closeBtn.BackgroundTransparency = 1
-    closeBtn.Text = "×"
-    closeBtn.TextColor3 = config.TextColor
+    closeBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    closeBtn.Text = "[ X ]"
+    closeBtn.TextColor3 = config.DangerColor
     closeBtn.TextScaled = true
-    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.Font = Enum.Font.Code
     closeBtn.Parent = titleBar
     
-    -- Title Text
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeBtn
+    
+    local closeStroke = Instance.new("UIStroke")
+    closeStroke.Color = config.DangerColor
+    closeStroke.Thickness = 1
+    closeStroke.Parent = closeBtn
+    
+    -- Title Text with hacker effect
     local titleText = Instance.new("TextLabel")
     titleText.Name = "Title"
     titleText.Size = UDim2.new(1, -85, 1, 0)
     titleText.Position = UDim2.new(0, 10, 0, 0)
     titleText.BackgroundTransparency = 1
-    titleText.Text = window.Title
-    titleText.TextColor3 = config.TextColor
+    titleText.Text = "[ " .. window.Title .. " ]"
+    titleText.TextColor3 = Color3.fromRGB(0, 0, 0)
     titleText.TextScaled = true
-    titleText.Font = Enum.Font.GothamBold
+    titleText.Font = Enum.Font.Code
     titleText.Parent = titleBar
+    
+    -- Add text stroke for hacker effect
+    local titleStroke = Instance.new("UIStroke")
+    titleStroke.Color = config.AccentColor
+    titleStroke.Thickness = 2
+    titleStroke.Parent = titleText
     
     -- Sidebar
     local sidebar = Instance.new("Frame")
@@ -126,10 +169,10 @@ function DogHub:CreateWindow(title)
     sidebar.BorderSizePixel = 0
     sidebar.Parent = mainFrame
     
-    -- Sidebar outline
+    -- Sidebar outline with glow
     local sidebarStroke = Instance.new("UIStroke")
     sidebarStroke.Color = config.OutlineColor
-    sidebarStroke.Thickness = 1
+    sidebarStroke.Thickness = 2
     sidebarStroke.Parent = sidebar
     
     -- Content Area
@@ -141,10 +184,10 @@ function DogHub:CreateWindow(title)
     contentArea.BorderSizePixel = 0
     contentArea.Parent = mainFrame
     
-    -- Content area outline
+    -- Content area outline with glow
     local contentStroke = Instance.new("UIStroke")
     contentStroke.Color = config.OutlineColor
-    contentStroke.Thickness = 1
+    contentStroke.Thickness = 2
     contentStroke.Parent = contentArea
     
     -- Sidebar ScrollingFrame
@@ -170,10 +213,10 @@ function DogHub:CreateWindow(title)
     window.MinimizeBtn = minimizeBtn
     window.CloseBtn = closeBtn
     
-    -- Welcome notification
+    -- Welcome notification with hacker message
     spawn(function()
         wait(0.5)
-        DogHub:CreateNotification("DOGHUB", "Welcome to DOGHUB! 🐕", 3)
+        DogHub:CreateNotification("SYSTEM", "ACCESS GRANTED - DOGHUB INITIALIZED", 3)
     end)
     
     -- Make draggable
@@ -205,7 +248,7 @@ function DogHub:CreateWindow(title)
     minimizeBtn.MouseButton1Click:Connect(function()
         window.Minimized = not window.Minimized
         local targetSize = window.Minimized and UDim2.new(0, 500, 0, 30) or UDim2.new(0, 500, 0, 350)
-        minimizeBtn.Text = window.Minimized and "+" or "-"
+        minimizeBtn.Text = window.Minimized and "[ + ]" or "[ - ]"
         
         TweenService:Create(mainFrame, TweenInfo.new(config.AnimationSpeed), {Size = targetSize}):Play()
     end)
@@ -213,6 +256,7 @@ function DogHub:CreateWindow(title)
     -- Close function (hide UI temporarily)
     closeBtn.MouseButton1Click:Connect(function()
         mainFrame.Visible = false
+        DogHub:CreateNotification("SYSTEM", "INTERFACE HIDDEN - PRESS TOGGLE KEY TO RESTORE", 2)
     end)
     
     -- Toggle keybind (customizable key to show/hide)
@@ -221,7 +265,7 @@ function DogHub:CreateWindow(title)
         if input.KeyCode == window.ToggleKey then
             mainFrame.Visible = not mainFrame.Visible
             if mainFrame.Visible then
-                DogHub:CreateNotification("DOGHUB", "UI Opened! Press " .. window.ToggleKey.Name .. " to toggle", 2)
+                DogHub:CreateNotification("SYSTEM", "INTERFACE RESTORED - " .. window.ToggleKey.Name .. " TOGGLE ACTIVE", 2)
             end
         end
     end)
@@ -232,7 +276,7 @@ end
 -- Set toggle key for window
 function DogHub:SetToggleKey(window, keyCode)
     window.ToggleKey = keyCode
-    DogHub:CreateNotification("DOGHUB", "Toggle key changed to: " .. keyCode.Name, 2)
+    DogHub:CreateNotification("SYSTEM", "TOGGLE KEY UPDATED: " .. keyCode.Name, 2)
 end
 
 -- Create Tab
@@ -245,17 +289,24 @@ function DogHub:CreateTab(window, name, icon)
         ScrollingFrame = nil
     }
     
-    -- Tab Button
+    -- Tab Button with hacker style
     local tabBtn = Instance.new("TextButton")
     tabBtn.Name = name .. "Tab"
     tabBtn.Size = UDim2.new(1, 0, 0, 35)
     tabBtn.BackgroundColor3 = config.BackgroundColor
     tabBtn.BorderSizePixel = 0
-    tabBtn.Text = tab.Icon .. " " .. name
+    tabBtn.Text = "> " .. tab.Icon .. " " .. name .. " <"
     tabBtn.TextColor3 = config.TextColor
     tabBtn.TextScaled = true
-    tabBtn.Font = Enum.Font.Gotham
+    tabBtn.Font = Enum.Font.Code
     tabBtn.Parent = window.Sidebar
+    
+    -- Add tab stroke
+    local tabStroke = Instance.new("UIStroke")
+    tabStroke.Color = config.AccentColor
+    tabStroke.Thickness = 1
+    tabStroke.Transparency = 0.5
+    tabStroke.Parent = tabBtn
     
     -- Tab Content
     local tabContent = Instance.new("ScrollingFrame")
@@ -283,24 +334,30 @@ function DogHub:CreateTab(window, name, icon)
     tab.ScrollingFrame = tabContent
     tab.Button = tabBtn
     
-    -- Tab click event
+    -- Tab click event with hacker animations
     tabBtn.MouseButton1Click:Connect(function()
         -- Hide all tabs
         for _, otherTab in pairs(window.Tabs) do
             otherTab.ScrollingFrame.Visible = false
             otherTab.Button.BackgroundColor3 = config.BackgroundColor
+            otherTab.Button:FindFirstChild("UIStroke").Transparency = 0.5
         end
         
-        -- Show current tab
+        -- Show current tab with hacker effect
         tabContent.Visible = true
         tabBtn.BackgroundColor3 = config.AccentColor
+        tabBtn:FindFirstChild("UIStroke").Transparency = 0
         window.CurrentTab = tab
+        
+        -- Create access notification
+        DogHub:CreateNotification("ACCESS", "MODULE [" .. name .. "] LOADED", 1)
     end)
     
-    -- Auto-select first tab
+    -- Auto-select first tab with hacker effect
     if #window.Tabs == 0 then
         tabContent.Visible = true
         tabBtn.BackgroundColor3 = config.AccentColor
+        tabBtn:FindFirstChild("UIStroke").Transparency = 0
         window.CurrentTab = tab
     end
     
@@ -339,10 +396,10 @@ function DogHub:CreateToggle(tab, name, defaultValue, callback)
     toggleLabel.Size = UDim2.new(1, -50, 1, 0)
     toggleLabel.Position = UDim2.new(0, 10, 0, 0)
     toggleLabel.BackgroundTransparency = 1
-    toggleLabel.Text = name
+    toggleLabel.Text = "> " .. name
     toggleLabel.TextColor3 = config.TextColor
     toggleLabel.TextScaled = true
-    toggleLabel.Font = Enum.Font.Gotham
+    toggleLabel.Font = Enum.Font.Code
     toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
     toggleLabel.Parent = toggleFrame
     
@@ -359,10 +416,10 @@ function DogHub:CreateToggle(tab, name, defaultValue, callback)
     btnCorner.CornerRadius = UDim.new(0, 10)
     btnCorner.Parent = toggleBtn
     
-    -- Add outline to toggle button
+    -- Add outline to toggle button with enhanced glow
     local btnStroke = Instance.new("UIStroke")
-    btnStroke.Color = config.SecondaryAccent
-    btnStroke.Thickness = 1
+    btnStroke.Color = config.AccentColor
+    btnStroke.Thickness = 2
     btnStroke.Parent = toggleBtn
     
     local toggleIndicator = Instance.new("Frame")
@@ -422,10 +479,10 @@ function DogHub:CreateSlider(tab, name, minValue, maxValue, defaultValue, callba
     sliderLabel.Size = UDim2.new(1, -60, 0, 20)
     sliderLabel.Position = UDim2.new(0, 10, 0, 5)
     sliderLabel.BackgroundTransparency = 1
-    sliderLabel.Text = name
+    sliderLabel.Text = "> " .. name
     sliderLabel.TextColor3 = config.TextColor
     sliderLabel.TextScaled = true
-    sliderLabel.Font = Enum.Font.Gotham
+    sliderLabel.Font = Enum.Font.Code
     sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
     sliderLabel.Parent = sliderFrame
     
@@ -434,10 +491,10 @@ function DogHub:CreateSlider(tab, name, minValue, maxValue, defaultValue, callba
     valueLabel.Size = UDim2.new(0, 50, 0, 20)
     valueLabel.Position = UDim2.new(1, -55, 0, 5)
     valueLabel.BackgroundTransparency = 1
-    valueLabel.Text = tostring(slider.Value)
+    valueLabel.Text = "[" .. tostring(slider.Value) .. "]"
     valueLabel.TextColor3 = config.AccentColor
     valueLabel.TextScaled = true
-    valueLabel.Font = Enum.Font.GothamBold
+    valueLabel.Font = Enum.Font.Code
     valueLabel.Parent = sliderFrame
     
     local sliderTrack = Instance.new("Frame")
@@ -487,7 +544,7 @@ function DogHub:CreateSlider(tab, name, minValue, maxValue, defaultValue, callba
         local percent = math.clamp((mousePos - trackPos) / trackSize, 0, 1)
         slider.Value = math.floor(slider.MinValue + (slider.MaxValue - slider.MinValue) * percent)
         
-        valueLabel.Text = tostring(slider.Value)
+        valueLabel.Text = "[" .. tostring(slider.Value) .. "]"
         
         local fillSize = UDim2.new(percent, 0, 1, 0)
         local handlePos = UDim2.new(percent, -6, 0.5, -6)
@@ -531,34 +588,41 @@ function DogHub:CreateButton(tab, name, callback)
     local buttonFrame = Instance.new("TextButton")
     buttonFrame.Name = name .. "Button"
     buttonFrame.Size = UDim2.new(1, 0, 0, 35)
-    buttonFrame.BackgroundColor3 = config.AccentColor
+    buttonFrame.BackgroundColor3 = config.BackgroundColor
     buttonFrame.BorderSizePixel = 0
-    buttonFrame.Text = name
+    buttonFrame.Text = "[ EXECUTE: " .. name .. " ]"
     buttonFrame.TextColor3 = config.TextColor
     buttonFrame.TextScaled = true
-    buttonFrame.Font = Enum.Font.GothamBold
+    buttonFrame.Font = Enum.Font.Code
     buttonFrame.Parent = tab.ScrollingFrame
     
     local buttonCorner = Instance.new("UICorner")
     buttonCorner.CornerRadius = UDim.new(0, 6)
     buttonCorner.Parent = buttonFrame
     
-    -- Add outline to button
+    -- Add enhanced outline to button
     local buttonStroke = Instance.new("UIStroke")
-    buttonStroke.Color = config.SecondaryAccent
+    buttonStroke.Color = config.AccentColor
     buttonStroke.Thickness = 2
     buttonStroke.Parent = buttonFrame
     
-    -- Button animations
+    -- Button animations with hacker effect
     buttonFrame.MouseEnter:Connect(function()
-        TweenService:Create(buttonFrame, TweenInfo.new(0.1), {BackgroundColor3 = config.SecondaryAccent}):Play()
+        TweenService:Create(buttonFrame, TweenInfo.new(0.1), {BackgroundColor3 = config.AccentColor}):Play()
+        TweenService:Create(buttonFrame, TweenInfo.new(0.1), {TextColor3 = Color3.fromRGB(0, 0, 0)}):Play()
+        buttonFrame.Text = "[ READY TO EXECUTE ]"
     end)
     
     buttonFrame.MouseLeave:Connect(function()
-        TweenService:Create(buttonFrame, TweenInfo.new(0.1), {BackgroundColor3 = config.AccentColor}):Play()
+        TweenService:Create(buttonFrame, TweenInfo.new(0.1), {BackgroundColor3 = config.BackgroundColor}):Play()
+        TweenService:Create(buttonFrame, TweenInfo.new(0.1), {TextColor3 = config.TextColor}):Play()
+        buttonFrame.Text = "[ EXECUTE: " .. name .. " ]"
     end)
     
     buttonFrame.MouseButton1Click:Connect(function()
+        buttonFrame.Text = "[ EXECUTED ]"
+        wait(0.3)
+        buttonFrame.Text = "[ EXECUTE: " .. name .. " ]"
         button.Callback()
     end)
     
@@ -857,12 +921,12 @@ function DogHub:CreateSection(tab, name)
     sectionLine.BorderSizePixel = 0
     sectionLine.Parent = sectionFrame
     
-    -- Add gradient effect to section line
+    -- Add gradient effect to section line with matrix colors
     local gradient = Instance.new("UIGradient")
     gradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, config.AccentColor),
-        ColorSequenceKeypoint.new(0.5, config.SecondaryAccent),
-        ColorSequenceKeypoint.new(1, config.AccentColor)
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 100, 50)),
+        ColorSequenceKeypoint.new(0.5, config.AccentColor),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 100, 50))
     }
     gradient.Parent = sectionLine
     
@@ -871,10 +935,10 @@ function DogHub:CreateSection(tab, name)
     sectionLabel.Size = UDim2.new(1, 0, 1, -10)
     sectionLabel.Position = UDim2.new(0, 10, 0, 0)
     sectionLabel.BackgroundTransparency = 1
-    sectionLabel.Text = name
-    sectionLabel.TextColor3 = config.SecondaryAccent
+    sectionLabel.Text = "// " .. name .. " //"
+    sectionLabel.TextColor3 = config.AccentColor
     sectionLabel.TextScaled = true
-    sectionLabel.Font = Enum.Font.GothamBold
+    sectionLabel.Font = Enum.Font.Code
     sectionLabel.TextXAlignment = Enum.TextXAlignment.Left
     sectionLabel.Parent = sectionFrame
     
@@ -899,9 +963,9 @@ function DogHub:CreateNotification(title, text, duration)
     
     local notificationFrame = Instance.new("Frame")
     notificationFrame.Name = "NotificationFrame"
-    notificationFrame.Size = UDim2.new(0, 300, 0, 80)
-    notificationFrame.Position = UDim2.new(1, 10, 1, -90)
-    notificationFrame.BackgroundColor3 = config.MainColor
+    notificationFrame.Size = UDim2.new(0, 350, 0, 90)
+    notificationFrame.Position = UDim2.new(1, 10, 1, -100)
+    notificationFrame.BackgroundColor3 = config.BackgroundColor
     notificationFrame.BorderSizePixel = 0
     notificationFrame.Parent = notificationGui
     
@@ -909,34 +973,53 @@ function DogHub:CreateNotification(title, text, duration)
     notificationCorner.CornerRadius = UDim.new(0, 8)
     notificationCorner.Parent = notificationFrame
     
+    -- Add hacker glow effect to notification
+    local notificationStroke = Instance.new("UIStroke")
+    notificationStroke.Color = config.AccentColor
+    notificationStroke.Thickness = 2
+    notificationStroke.Parent = notificationFrame
+    
+    -- Add Matrix-style background pattern
+    local pattern = Instance.new("Frame")
+    pattern.Name = "Pattern"
+    pattern.Size = UDim2.new(1, 0, 1, 0)
+    pattern.BackgroundColor3 = Color3.fromRGB(0, 20, 10)
+    pattern.BackgroundTransparency = 0.8
+    pattern.BorderSizePixel = 0
+    pattern.Parent = notificationFrame
+    
+    local patternCorner = Instance.new("UICorner")
+    patternCorner.CornerRadius = UDim.new(0, 8)
+    patternCorner.Parent = pattern
+    
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Name = "Title"
     titleLabel.Size = UDim2.new(1, -20, 0, 25)
     titleLabel.Position = UDim2.new(0, 10, 0, 5)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = title
-    titleLabel.TextColor3 = config.SecondaryAccent
+    titleLabel.Text = "[ " .. title .. " ]"
+    titleLabel.TextColor3 = config.AccentColor
     titleLabel.TextScaled = true
-    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Font = Enum.Font.Code
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     titleLabel.Parent = notificationFrame
     
     local textLabel = Instance.new("TextLabel")
     textLabel.Name = "Text"
-    textLabel.Size = UDim2.new(1, -20, 0, 40)
+    textLabel.Size = UDim2.new(1, -20, 0, 50)
     textLabel.Position = UDim2.new(0, 10, 0, 30)
     textLabel.BackgroundTransparency = 1
-    textLabel.Text = text
+    textLabel.Text = "> " .. text
     textLabel.TextColor3 = config.TextColor
     textLabel.TextScaled = true
-    textLabel.Font = Enum.Font.Gotham
+    textLabel.Font = Enum.Font.Code
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
     textLabel.TextWrapped = true
     textLabel.Parent = notificationFrame
     
-    -- Animate in
+    -- Animate in with hacker effect
     notificationFrame:TweenPosition(
-        UDim2.new(1, -310, 1, -90),
+        UDim2.new(1, -360, 1, -100),
         "Out",
         "Quart",
         0.5,
@@ -948,9 +1031,9 @@ function DogHub:CreateNotification(title, text, duration)
     
     wait(duration)
     
-    -- Animate out
+    -- Animate out with hacker effect
     notificationFrame:TweenPosition(
-        UDim2.new(1, 10, 1, -90),
+        UDim2.new(1, 10, 1, -100),
         "In",
         "Quart",
         0.5,
@@ -987,100 +1070,105 @@ function DogHub:Example()
     -- Create main window
     local window = self:CreateWindow("DOGHUB")
     
-    -- Create tabs
-    local farmingTab = self:CreateTab(window, "Farming", "🌾")
+    -- Create tabs with hacker icons
+    local farmingTab = self:CreateTab(window, "Farming", "⚡")
     local visualsTab = self:CreateTab(window, "Gun Visuals", "🎯")
-    local ambientTab = self:CreateTab(window, "Ambient", "🌟")
-    local funTab = self:CreateTab(window, "Fun", "⭐")
+    local ambientTab = self:CreateTab(window, "Ambient", "🌐")
+    local funTab = self:CreateTab(window, "Fun", "💀")
     local miscTab = self:CreateTab(window, "MISC", "⚙️")
     
-    -- Farming Tab Elements
-    self:CreateSection(farmingTab, "Scourge Farm")
+    -- Farming Tab Elements with hacker theme
+    self:CreateSection(farmingTab, "EXPLOIT_FARMING")
     
-    self:CreateToggle(farmingTab, "Farmer", false, function(value)
-        print("Farmer:", value)
+    self:CreateToggle(farmingTab, "Auto Farmer", false, function(value)
+        print("Auto Farmer:", value)
+        if value then
+            DogHub:CreateNotification("EXPLOIT", "FARMING MODULE ACTIVATED", 2)
+        end
     end)
     
-    self:CreateToggle(farmingTab, "Farm Scourge", false, function(value)
-        print("Farm Scourge:", value)
+    self:CreateToggle(farmingTab, "Scourge Hack", false, function(value)
+        print("Scourge Hack:", value)
     end)
     
-    self:CreateSlider(farmingTab, "Height Offset", 0, 20, 10, function(value)
-        print("Height Offset:", value)
+    self:CreateSlider(farmingTab, "Height Override", 0, 20, 10, function(value)
+        print("Height Override:", value)
     end)
     
-    self:CreateSection(farmingTab, "Auto Collect")
+    self:CreateSection(farmingTab, "AUTO_COLLECTION")
     
-    self:CreateDropdown(farmingTab, "Keycard", {"Green Keycard", "Blue Keycard", "Red Keycard"}, "Green Keycard", function(value)
-        print("Selected Keycard:", value)
+    self:CreateDropdown(farmingTab, "Target Keycard", {"Green Access", "Blue Access", "Red Access"}, "Green Access", function(value)
+        print("Target Keycard:", value)
     end)
     
-    self:CreateToggle(farmingTab, "Auto Collect Items", false, function(value)
-        print("Auto Collect:", value)
+    self:CreateToggle(farmingTab, "Item Collector", false, function(value)
+        print("Item Collector:", value)
     end)
     
-    -- Gun Visuals Tab
-    self:CreateSection(visualsTab, "Weapon Effects")
+    -- Gun Visuals Tab with hacker enhancements
+    self:CreateSection(visualsTab, "WEAPON_MODS")
     
-    self:CreateToggle(visualsTab, "No Recoil", false, function(value)
-        print("No Recoil:", value)
+    self:CreateToggle(visualsTab, "Recoil Nullifier", false, function(value)
+        print("Recoil Nullifier:", value)
     end)
     
-    self:CreateToggle(visualsTab, "No Spread", false, function(value)
-        print("No Spread:", value)
+    self:CreateToggle(visualsTab, "Spread Override", false, function(value)
+        print("Spread Override:", value)
     end)
     
-    self:CreateSlider(visualsTab, "FOV", 70, 120, 90, function(value)
-        print("FOV:", value)
+    self:CreateSlider(visualsTab, "FOV Hack", 70, 120, 90, function(value)
+        print("FOV Hack:", value)
     end)
     
     -- Ambient Tab
-    self:CreateSection(ambientTab, "Environment")
+    self:CreateSection(ambientTab, "ENVIRONMENT_HACK")
     
-    self:CreateToggle(ambientTab, "Full Bright", false, function(value)
-        print("Full Bright:", value)
+    self:CreateToggle(ambientTab, "Matrix Mode", false, function(value)
+        print("Matrix Mode:", value)
     end)
     
-    self:CreateSlider(ambientTab, "Ambient Brightness", 0, 10, 1, function(value)
-        print("Brightness:", value)
+    self:CreateSlider(ambientTab, "Light Override", 0, 10, 1, function(value)
+        print("Light Override:", value)
     end)
     
-    self:CreateDropdown(ambientTab, "Sky Theme", {"Default", "Night", "Sunset", "Space"}, "Default", function(value)
-        print("Sky Theme:", value)
+    self:CreateDropdown(ambientTab, "Sky Override", {"Default", "Matrix", "Cyber", "Void"}, "Default", function(value)
+        print("Sky Override:", value)
     end)
     
-    -- Fun Tab
-    self:CreateSection(funTab, "Player Modifications")
+    -- Fun Tab with hacker modifications
+    self:CreateSection(funTab, "PLAYER_HACKS")
     
-    self:CreateSlider(funTab, "Walk Speed", 16, 100, 16, function(value)
+    self:CreateSlider(funTab, "Speed Hack", 16, 100, 16, function(value)
         if player.Character and player.Character:FindFirstChild("Humanoid") then
             player.Character.Humanoid.WalkSpeed = value
         end
     end)
     
-    self:CreateSlider(funTab, "Jump Power", 50, 200, 50, function(value)
+    self:CreateSlider(funTab, "Jump Override", 50, 200, 50, function(value)
         if player.Character and player.Character:FindFirstChild("Humanoid") then
             player.Character.Humanoid.JumpPower = value
         end
     end)
     
-    self:CreateToggle(funTab, "Infinite Jump", false, function(value)
-        print("Infinite Jump:", value)
+    self:CreateToggle(funTab, "Flight Mode", false, function(value)
+        print("Flight Mode:", value)
     end)
     
-    -- MISC Tab
-    self:CreateSection(miscTab, "Utilities")
+    -- MISC Tab with enhanced hacker features
+    self:CreateSection(miscTab, "SYSTEM_CONTROL")
     
-    self:CreateButton(miscTab, "Rejoin Server", function()
+    self:CreateButton(miscTab, "Server Rejoin", function()
+        DogHub:CreateNotification("SYSTEM", "INITIATING SERVER RECONNECTION...", 2)
+        wait(1)
         game:GetService("TeleportService"):Teleport(game.PlaceId, player)
     end)
     
-    self:CreateKeybind(miscTab, "Toggle GUI", Enum.KeyCode.Insert, function()
+    self:CreateKeybind(miscTab, "Interface Toggle", Enum.KeyCode.Insert, function()
         window.MainFrame.Visible = not window.MainFrame.Visible
     end)
     
-    -- Toggle Key Selector
-    self:CreateDropdown(miscTab, "UI Toggle Key", {
+    -- Toggle Key Selector with hacker styling
+    self:CreateDropdown(miscTab, "Toggle Key Override", {
         "Insert", "F1", "F2", "F3", "F4", "F5", "Home", "End", 
         "PageUp", "PageDown", "Delete", "Backspace", "Tab"
     }, "Insert", function(value)
@@ -1105,15 +1193,19 @@ function DogHub:Example()
         end
     end)
     
-    self:CreateTextbox(miscTab, "Custom Message", "Enter message...", function(text)
-        print("Custom Message:", text)
+    self:CreateTextbox(miscTab, "Command Input", "Enter command...", function(text)
+        print("Command Executed:", text)
+        DogHub:CreateNotification("COMMAND", "EXECUTED: " .. text, 2)
     end)
     
-    self:CreateButton(miscTab, "Send Notification", function()
-        self:CreateNotification("DOGHUB", "This is a test notification!", 3)
+    self:CreateButton(miscTab, "Test Notification", function()
+        DogHub:CreateNotification("TEST", "NOTIFICATION SYSTEM OPERATIONAL", 3)
     end)
     
-    self:CreateLabel(miscTab, "Made with ❤️ by DOGHUB Team")
+    self:CreateSection(miscTab, "CREDITS")
+    
+    self:CreateLabel(miscTab, "// DOGHUB HACKER EDITION //")
+    self:CreateLabel(miscTab, "// ACCESS LEVEL: MAXIMUM //")
     
     return window
 end
