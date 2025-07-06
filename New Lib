@@ -1,13 +1,12 @@
-local sectionLabel = Instance.new("TextLabel")
-    sectionLabel.Name = "SectionLabel"
-    sectionLabel.Size = UDim2.new(1, 0, 1, -10)
-    sectionLabel.Position-- DOGHUB GUI Library
--- Complete GUI library with all components
+-- DOGHUB HACKER EDITION - Standalone Version
+-- Copy วางโค้ดนี้ใน Executor ได้เลย
 
-local DogHub = {}
-DogHub.__index = DogHub
+-- ตรวจสอบว่ามี DogHub อยู่แล้วไหม ถ้ามีให้ลบ
+if game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("DogHub") then
+    game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("DogHub"):Destroy()
+end
 
--- Services (assuming Roblox)
+-- Services
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -16,23 +15,25 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Library Configuration
+-- DOGHUB Library
+local DogHub = {}
+DogHub.__index = DogHub
+
+-- Configuration
 local config = {
     MainColor = Color3.fromRGB(5, 15, 10),
-    AccentColor = Color3.fromRGB(0, 255, 100), -- Matrix Green
-    SecondaryAccent = Color3.fromRGB(0, 200, 80), -- Darker Green
+    AccentColor = Color3.fromRGB(0, 255, 100),
+    SecondaryAccent = Color3.fromRGB(0, 200, 80),
     BackgroundColor = Color3.fromRGB(0, 10, 5),
     TextColor = Color3.fromRGB(0, 255, 100),
     DisabledColor = Color3.fromRGB(40, 60, 45),
-    SuccessColor = Color3.fromRGB(0, 255, 150),
     OutlineColor = Color3.fromRGB(0, 255, 100),
     DangerColor = Color3.fromRGB(255, 50, 50),
     AnimationSpeed = 0.2
 }
 
--- Create main window
+-- Create Window Function
 function DogHub:CreateWindow(title)
-    -- Check if DogHub already exists and destroy it
     local existingGui = playerGui:FindFirstChild("DogHub")
     if existingGui then
         existingGui:Destroy()
@@ -43,16 +44,14 @@ function DogHub:CreateWindow(title)
         Tabs = {},
         CurrentTab = nil,
         Minimized = false,
-        ToggleKey = Enum.KeyCode.Insert -- Default toggle key
+        ToggleKey = Enum.KeyCode.Insert
     }
     
-    -- Create ScreenGui
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "DogHub"
     screenGui.Parent = playerGui
     screenGui.ResetOnSpawn = false
     
-    -- Main Frame
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
     mainFrame.Size = UDim2.new(0, 500, 0, 350)
@@ -61,33 +60,15 @@ function DogHub:CreateWindow(title)
     mainFrame.BorderSizePixel = 0
     mainFrame.Parent = screenGui
     
-    -- Add corner radius
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = mainFrame
     
-    -- Add outline stroke with glow effect
     local stroke = Instance.new("UIStroke")
     stroke.Color = config.OutlineColor
     stroke.Thickness = 3
     stroke.Parent = mainFrame
     
-    -- Add shadow/glow effect
-    local shadow = Instance.new("Frame")
-    shadow.Name = "Shadow"
-    shadow.Size = UDim2.new(1, 10, 1, 10)
-    shadow.Position = UDim2.new(0, -5, 0, -5)
-    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    shadow.BackgroundTransparency = 0.7
-    shadow.BorderSizePixel = 0
-    shadow.ZIndex = -1
-    shadow.Parent = mainFrame
-    
-    local shadowCorner = Instance.new("UICorner")
-    shadowCorner.CornerRadius = UDim.new(0, 12)
-    shadowCorner.Parent = shadow
-    
-    -- Title Bar
     local titleBar = Instance.new("Frame")
     titleBar.Name = "TitleBar"
     titleBar.Size = UDim2.new(1, 0, 0, 30)
@@ -100,49 +81,6 @@ function DogHub:CreateWindow(title)
     titleCorner.CornerRadius = UDim.new(0, 8)
     titleCorner.Parent = titleBar
     
-    -- Minimize Button with hacker style
-    local minimizeBtn = Instance.new("TextButton")
-    minimizeBtn.Name = "MinimizeBtn"
-    minimizeBtn.Size = UDim2.new(0, 25, 0, 25)
-    minimizeBtn.Position = UDim2.new(1, -55, 0, 2.5)
-    minimizeBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    minimizeBtn.Text = "[ - ]"
-    minimizeBtn.TextColor3 = config.AccentColor
-    minimizeBtn.TextScaled = true
-    minimizeBtn.Font = Enum.Font.Code
-    minimizeBtn.Parent = titleBar
-    
-    local minCorner = Instance.new("UICorner")
-    minCorner.CornerRadius = UDim.new(0, 4)
-    minCorner.Parent = minimizeBtn
-    
-    local minStroke = Instance.new("UIStroke")
-    minStroke.Color = config.AccentColor
-    minStroke.Thickness = 1
-    minStroke.Parent = minimizeBtn
-    
-    -- Close Button with hacker style
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Name = "CloseBtn"
-    closeBtn.Size = UDim2.new(0, 25, 0, 25)
-    closeBtn.Position = UDim2.new(1, -30, 0, 2.5)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    closeBtn.Text = "[ X ]"
-    closeBtn.TextColor3 = config.DangerColor
-    closeBtn.TextScaled = true
-    closeBtn.Font = Enum.Font.Code
-    closeBtn.Parent = titleBar
-    
-    local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 4)
-    closeCorner.Parent = closeBtn
-    
-    local closeStroke = Instance.new("UIStroke")
-    closeStroke.Color = config.DangerColor
-    closeStroke.Thickness = 1
-    closeStroke.Parent = closeBtn
-    
-    -- Title Text with hacker effect
     local titleText = Instance.new("TextLabel")
     titleText.Name = "Title"
     titleText.Size = UDim2.new(1, -85, 1, 0)
@@ -154,13 +92,33 @@ function DogHub:CreateWindow(title)
     titleText.Font = Enum.Font.Code
     titleText.Parent = titleBar
     
-    -- Add text stroke for hacker effect
     local titleStroke = Instance.new("UIStroke")
     titleStroke.Color = config.AccentColor
     titleStroke.Thickness = 2
     titleStroke.Parent = titleText
     
-    -- Sidebar
+    local minimizeBtn = Instance.new("TextButton")
+    minimizeBtn.Name = "MinimizeBtn"
+    minimizeBtn.Size = UDim2.new(0, 25, 0, 25)
+    minimizeBtn.Position = UDim2.new(1, -55, 0, 2.5)
+    minimizeBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    minimizeBtn.Text = "[ - ]"
+    minimizeBtn.TextColor3 = config.AccentColor
+    minimizeBtn.TextScaled = true
+    minimizeBtn.Font = Enum.Font.Code
+    minimizeBtn.Parent = titleBar
+    
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseBtn"
+    closeBtn.Size = UDim2.new(0, 25, 0, 25)
+    closeBtn.Position = UDim2.new(1, -30, 0, 2.5)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    closeBtn.Text = "[ X ]"
+    closeBtn.TextColor3 = config.DangerColor
+    closeBtn.TextScaled = true
+    closeBtn.Font = Enum.Font.Code
+    closeBtn.Parent = titleBar
+    
     local sidebar = Instance.new("Frame")
     sidebar.Name = "Sidebar"
     sidebar.Size = UDim2.new(0, 150, 1, -30)
@@ -169,13 +127,11 @@ function DogHub:CreateWindow(title)
     sidebar.BorderSizePixel = 0
     sidebar.Parent = mainFrame
     
-    -- Sidebar outline with glow
     local sidebarStroke = Instance.new("UIStroke")
     sidebarStroke.Color = config.OutlineColor
     sidebarStroke.Thickness = 2
     sidebarStroke.Parent = sidebar
     
-    -- Content Area
     local contentArea = Instance.new("Frame")
     contentArea.Name = "ContentArea"
     contentArea.Size = UDim2.new(1, -150, 1, -30)
@@ -184,13 +140,11 @@ function DogHub:CreateWindow(title)
     contentArea.BorderSizePixel = 0
     contentArea.Parent = mainFrame
     
-    -- Content area outline with glow
     local contentStroke = Instance.new("UIStroke")
     contentStroke.Color = config.OutlineColor
     contentStroke.Thickness = 2
     contentStroke.Parent = contentArea
     
-    -- Sidebar ScrollingFrame
     local sidebarScroll = Instance.new("ScrollingFrame")
     sidebarScroll.Name = "SidebarScroll"
     sidebarScroll.Size = UDim2.new(1, 0, 1, 0)
@@ -205,7 +159,6 @@ function DogHub:CreateWindow(title)
     sidebarLayout.Padding = UDim.new(0, 2)
     sidebarLayout.Parent = sidebarScroll
     
-    -- Store GUI elements
     window.ScreenGui = screenGui
     window.MainFrame = mainFrame
     window.Sidebar = sidebarScroll
@@ -213,7 +166,7 @@ function DogHub:CreateWindow(title)
     window.MinimizeBtn = minimizeBtn
     window.CloseBtn = closeBtn
     
-    -- Welcome notification with hacker message
+    -- Welcome notification
     spawn(function()
         wait(0.5)
         DogHub:CreateNotification("SYSTEM", "ACCESS GRANTED - DOGHUB INITIALIZED", 3)
@@ -249,17 +202,16 @@ function DogHub:CreateWindow(title)
         window.Minimized = not window.Minimized
         local targetSize = window.Minimized and UDim2.new(0, 500, 0, 30) or UDim2.new(0, 500, 0, 350)
         minimizeBtn.Text = window.Minimized and "[ + ]" or "[ - ]"
-        
         TweenService:Create(mainFrame, TweenInfo.new(config.AnimationSpeed), {Size = targetSize}):Play()
     end)
     
-    -- Close function (hide UI temporarily)
+    -- Close function
     closeBtn.MouseButton1Click:Connect(function()
         mainFrame.Visible = false
         DogHub:CreateNotification("SYSTEM", "INTERFACE HIDDEN - PRESS TOGGLE KEY TO RESTORE", 2)
     end)
     
-    -- Toggle keybind (customizable key to show/hide)
+    -- Toggle keybind
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
         if input.KeyCode == window.ToggleKey then
@@ -273,13 +225,7 @@ function DogHub:CreateWindow(title)
     return window
 end
 
--- Set toggle key for window
-function DogHub:SetToggleKey(window, keyCode)
-    window.ToggleKey = keyCode
-    DogHub:CreateNotification("SYSTEM", "TOGGLE KEY UPDATED: " .. keyCode.Name, 2)
-end
-
--- Create Tab
+-- Create Tab Function
 function DogHub:CreateTab(window, name, icon)
     local tab = {
         Name = name,
@@ -289,7 +235,6 @@ function DogHub:CreateTab(window, name, icon)
         ScrollingFrame = nil
     }
     
-    -- Tab Button with hacker style
     local tabBtn = Instance.new("TextButton")
     tabBtn.Name = name .. "Tab"
     tabBtn.Size = UDim2.new(1, 0, 0, 35)
@@ -301,14 +246,12 @@ function DogHub:CreateTab(window, name, icon)
     tabBtn.Font = Enum.Font.Code
     tabBtn.Parent = window.Sidebar
     
-    -- Add tab stroke
     local tabStroke = Instance.new("UIStroke")
     tabStroke.Color = config.AccentColor
     tabStroke.Thickness = 1
     tabStroke.Transparency = 0.5
     tabStroke.Parent = tabBtn
     
-    -- Tab Content
     local tabContent = Instance.new("ScrollingFrame")
     tabContent.Name = name .. "Content"
     tabContent.Size = UDim2.new(1, 0, 1, 0)
@@ -334,26 +277,21 @@ function DogHub:CreateTab(window, name, icon)
     tab.ScrollingFrame = tabContent
     tab.Button = tabBtn
     
-    -- Tab click event with hacker animations
     tabBtn.MouseButton1Click:Connect(function()
-        -- Hide all tabs
         for _, otherTab in pairs(window.Tabs) do
             otherTab.ScrollingFrame.Visible = false
             otherTab.Button.BackgroundColor3 = config.BackgroundColor
             otherTab.Button:FindFirstChild("UIStroke").Transparency = 0.5
         end
         
-        -- Show current tab with hacker effect
         tabContent.Visible = true
         tabBtn.BackgroundColor3 = config.AccentColor
         tabBtn:FindFirstChild("UIStroke").Transparency = 0
         window.CurrentTab = tab
         
-        -- Create access notification
         DogHub:CreateNotification("ACCESS", "MODULE [" .. name .. "] LOADED", 1)
     end)
     
-    -- Auto-select first tab with hacker effect
     if #window.Tabs == 0 then
         tabContent.Visible = true
         tabBtn.BackgroundColor3 = config.AccentColor
@@ -365,7 +303,7 @@ function DogHub:CreateTab(window, name, icon)
     return tab
 end
 
--- Create Toggle
+-- Create Toggle Function
 function DogHub:CreateToggle(tab, name, defaultValue, callback)
     local toggle = {
         Name = name,
@@ -384,7 +322,6 @@ function DogHub:CreateToggle(tab, name, defaultValue, callback)
     toggleCorner.CornerRadius = UDim.new(0, 6)
     toggleCorner.Parent = toggleFrame
     
-    -- Add outline to toggle
     local toggleStroke = Instance.new("UIStroke")
     toggleStroke.Color = config.OutlineColor
     toggleStroke.Thickness = 1
@@ -416,7 +353,6 @@ function DogHub:CreateToggle(tab, name, defaultValue, callback)
     btnCorner.CornerRadius = UDim.new(0, 10)
     btnCorner.Parent = toggleBtn
     
-    -- Add outline to toggle button with enhanced glow
     local btnStroke = Instance.new("UIStroke")
     btnStroke.Color = config.AccentColor
     btnStroke.Thickness = 2
@@ -434,7 +370,6 @@ function DogHub:CreateToggle(tab, name, defaultValue, callback)
     indicatorCorner.CornerRadius = UDim.new(0, 8)
     indicatorCorner.Parent = toggleIndicator
     
-    -- Toggle function
     local function updateToggle()
         toggle.Value = not toggle.Value
         
@@ -453,132 +388,7 @@ function DogHub:CreateToggle(tab, name, defaultValue, callback)
     return toggle
 end
 
--- Create Slider
-function DogHub:CreateSlider(tab, name, minValue, maxValue, defaultValue, callback)
-    local slider = {
-        Name = name,
-        MinValue = minValue or 0,
-        MaxValue = maxValue or 100,
-        Value = defaultValue or minValue or 0,
-        Callback = callback or function() end
-    }
-    
-    local sliderFrame = Instance.new("Frame")
-    sliderFrame.Name = name .. "Slider"
-    sliderFrame.Size = UDim2.new(1, 0, 0, 50)
-    sliderFrame.BackgroundColor3 = config.BackgroundColor
-    sliderFrame.BorderSizePixel = 0
-    sliderFrame.Parent = tab.ScrollingFrame
-    
-    local sliderCorner = Instance.new("UICorner")
-    sliderCorner.CornerRadius = UDim.new(0, 6)
-    sliderCorner.Parent = sliderFrame
-    
-    local sliderLabel = Instance.new("TextLabel")
-    sliderLabel.Name = "Label"
-    sliderLabel.Size = UDim2.new(1, -60, 0, 20)
-    sliderLabel.Position = UDim2.new(0, 10, 0, 5)
-    sliderLabel.BackgroundTransparency = 1
-    sliderLabel.Text = "> " .. name
-    sliderLabel.TextColor3 = config.TextColor
-    sliderLabel.TextScaled = true
-    sliderLabel.Font = Enum.Font.Code
-    sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
-    sliderLabel.Parent = sliderFrame
-    
-    local valueLabel = Instance.new("TextLabel")
-    valueLabel.Name = "ValueLabel"
-    valueLabel.Size = UDim2.new(0, 50, 0, 20)
-    valueLabel.Position = UDim2.new(1, -55, 0, 5)
-    valueLabel.BackgroundTransparency = 1
-    valueLabel.Text = "[" .. tostring(slider.Value) .. "]"
-    valueLabel.TextColor3 = config.AccentColor
-    valueLabel.TextScaled = true
-    valueLabel.Font = Enum.Font.Code
-    valueLabel.Parent = sliderFrame
-    
-    local sliderTrack = Instance.new("Frame")
-    sliderTrack.Name = "Track"
-    sliderTrack.Size = UDim2.new(1, -20, 0, 4)
-    sliderTrack.Position = UDim2.new(0, 10, 1, -15)
-    sliderTrack.BackgroundColor3 = config.DisabledColor
-    sliderTrack.BorderSizePixel = 0
-    sliderTrack.Parent = sliderFrame
-    
-    local trackCorner = Instance.new("UICorner")
-    trackCorner.CornerRadius = UDim.new(0, 2)
-    trackCorner.Parent = sliderTrack
-    
-    local sliderFill = Instance.new("Frame")
-    sliderFill.Name = "Fill"
-    sliderFill.Size = UDim2.new((slider.Value - slider.MinValue) / (slider.MaxValue - slider.MinValue), 0, 1, 0)
-    sliderFill.Position = UDim2.new(0, 0, 0, 0)
-    sliderFill.BackgroundColor3 = config.AccentColor
-    sliderFill.BorderSizePixel = 0
-    sliderFill.Parent = sliderTrack
-    
-    local fillCorner = Instance.new("UICorner")
-    fillCorner.CornerRadius = UDim.new(0, 2)
-    fillCorner.Parent = sliderFill
-    
-    local sliderHandle = Instance.new("Frame")
-    sliderHandle.Name = "Handle"
-    sliderHandle.Size = UDim2.new(0, 12, 0, 12)
-    sliderHandle.Position = UDim2.new((slider.Value - slider.MinValue) / (slider.MaxValue - slider.MinValue), -6, 0.5, -6)
-    sliderHandle.BackgroundColor3 = config.TextColor
-    sliderHandle.BorderSizePixel = 0
-    sliderHandle.Parent = sliderTrack
-    
-    local handleCorner = Instance.new("UICorner")
-    handleCorner.CornerRadius = UDim.new(0, 6)
-    handleCorner.Parent = sliderHandle
-    
-    -- Slider dragging
-    local dragging = false
-    
-    local function updateSlider(input)
-        local trackPos = sliderTrack.AbsolutePosition.X
-        local trackSize = sliderTrack.AbsoluteSize.X
-        local mousePos = input.Position.X
-        
-        local percent = math.clamp((mousePos - trackPos) / trackSize, 0, 1)
-        slider.Value = math.floor(slider.MinValue + (slider.MaxValue - slider.MinValue) * percent)
-        
-        valueLabel.Text = "[" .. tostring(slider.Value) .. "]"
-        
-        local fillSize = UDim2.new(percent, 0, 1, 0)
-        local handlePos = UDim2.new(percent, -6, 0.5, -6)
-        
-        TweenService:Create(sliderFill, TweenInfo.new(0.1), {Size = fillSize}):Play()
-        TweenService:Create(sliderHandle, TweenInfo.new(0.1), {Position = handlePos}):Play()
-        
-        slider.Callback(slider.Value)
-    end
-    
-    sliderTrack.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            updateSlider(input)
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            updateSlider(input)
-        end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-    
-    table.insert(tab.Elements, slider)
-    return slider
-end
-
--- Create Button
+-- Create Button Function
 function DogHub:CreateButton(tab, name, callback)
     local button = {
         Name = name,
@@ -600,13 +410,11 @@ function DogHub:CreateButton(tab, name, callback)
     buttonCorner.CornerRadius = UDim.new(0, 6)
     buttonCorner.Parent = buttonFrame
     
-    -- Add enhanced outline to button
     local buttonStroke = Instance.new("UIStroke")
     buttonStroke.Color = config.AccentColor
     buttonStroke.Thickness = 2
     buttonStroke.Parent = buttonFrame
     
-    -- Button animations with hacker effect
     buttonFrame.MouseEnter:Connect(function()
         TweenService:Create(buttonFrame, TweenInfo.new(0.1), {BackgroundColor3 = config.AccentColor}):Play()
         TweenService:Create(buttonFrame, TweenInfo.new(0.1), {TextColor3 = Color3.fromRGB(0, 0, 0)}):Play()
@@ -630,278 +438,7 @@ function DogHub:CreateButton(tab, name, callback)
     return button
 end
 
--- Create Dropdown
-function DogHub:CreateDropdown(tab, name, options, defaultValue, callback)
-    local dropdown = {
-        Name = name,
-        Options = options or {},
-        Value = defaultValue or (options and options[1]) or "",
-        Callback = callback or function() end,
-        Open = false
-    }
-    
-    local dropdownFrame = Instance.new("Frame")
-    dropdownFrame.Name = name .. "Dropdown"
-    dropdownFrame.Size = UDim2.new(1, 0, 0, 35)
-    dropdownFrame.BackgroundColor3 = config.BackgroundColor
-    dropdownFrame.BorderSizePixel = 0
-    dropdownFrame.Parent = tab.ScrollingFrame
-    
-    local dropdownCorner = Instance.new("UICorner")
-    dropdownCorner.CornerRadius = UDim.new(0, 6)
-    dropdownCorner.Parent = dropdownFrame
-    
-    local dropdownLabel = Instance.new("TextLabel")
-    dropdownLabel.Name = "Label"
-    dropdownLabel.Size = UDim2.new(0.4, 0, 1, 0)
-    dropdownLabel.Position = UDim2.new(0, 10, 0, 0)
-    dropdownLabel.BackgroundTransparency = 1
-    dropdownLabel.Text = name
-    dropdownLabel.TextColor3 = config.TextColor
-    dropdownLabel.TextScaled = true
-    dropdownLabel.Font = Enum.Font.Gotham
-    dropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
-    dropdownLabel.Parent = dropdownFrame
-    
-    local dropdownBtn = Instance.new("TextButton")
-    dropdownBtn.Name = "DropdownBtn"
-    dropdownBtn.Size = UDim2.new(0.55, 0, 0, 25)
-    dropdownBtn.Position = UDim2.new(0.4, 10, 0.5, -12.5)
-    dropdownBtn.BackgroundColor3 = config.MainColor
-    dropdownBtn.BorderSizePixel = 0
-    dropdownBtn.Text = dropdown.Value .. " ▼"
-    dropdownBtn.TextColor3 = config.TextColor
-    dropdownBtn.TextScaled = true
-    dropdownBtn.Font = Enum.Font.Gotham
-    dropdownBtn.Parent = dropdownFrame
-    
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 4)
-    btnCorner.Parent = dropdownBtn
-    
-    -- Dropdown options
-    local optionsFrame = Instance.new("Frame")
-    optionsFrame.Name = "OptionsFrame"
-    optionsFrame.Size = UDim2.new(0.55, 0, 0, #dropdown.Options * 25)
-    optionsFrame.Position = UDim2.new(0.4, 10, 1, 5)
-    optionsFrame.BackgroundColor3 = config.MainColor
-    optionsFrame.BorderSizePixel = 0
-    optionsFrame.Visible = false
-    optionsFrame.Parent = dropdownFrame
-    
-    local optionsCorner = Instance.new("UICorner")
-    optionsCorner.CornerRadius = UDim.new(0, 4)
-    optionsCorner.Parent = optionsFrame
-    
-    local optionsLayout = Instance.new("UIListLayout")
-    optionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    optionsLayout.Parent = optionsFrame
-    
-    -- Create option buttons
-    for i, option in ipairs(dropdown.Options) do
-        local optionBtn = Instance.new("TextButton")
-        optionBtn.Name = "Option" .. i
-        optionBtn.Size = UDim2.new(1, 0, 0, 25)
-        optionBtn.BackgroundColor3 = config.MainColor
-        optionBtn.BorderSizePixel = 0
-        optionBtn.Text = option
-        optionBtn.TextColor3 = config.TextColor
-        optionBtn.TextScaled = true
-        optionBtn.Font = Enum.Font.Gotham
-        optionBtn.Parent = optionsFrame
-        
-        optionBtn.MouseEnter:Connect(function()
-            optionBtn.BackgroundColor3 = config.AccentColor
-        end)
-        
-        optionBtn.MouseLeave:Connect(function()
-            optionBtn.BackgroundColor3 = config.MainColor
-        end)
-        
-        optionBtn.MouseButton1Click:Connect(function()
-            dropdown.Value = option
-            dropdownBtn.Text = option .. " ▼"
-            optionsFrame.Visible = false
-            dropdown.Open = false
-            dropdownFrame.Size = UDim2.new(1, 0, 0, 35)
-            dropdown.Callback(option)
-        end)
-    end
-    
-    -- Toggle dropdown
-    dropdownBtn.MouseButton1Click:Connect(function()
-        dropdown.Open = not dropdown.Open
-        optionsFrame.Visible = dropdown.Open
-        
-        if dropdown.Open then
-            dropdownFrame.Size = UDim2.new(1, 0, 0, 35 + #dropdown.Options * 25 + 5)
-            dropdownBtn.Text = dropdown.Value .. " ▲"
-        else
-            dropdownFrame.Size = UDim2.new(1, 0, 0, 35)
-            dropdownBtn.Text = dropdown.Value .. " ▼"
-        end
-    end)
-    
-    table.insert(tab.Elements, dropdown)
-    return dropdown
-end
-
--- Create Textbox
-function DogHub:CreateTextbox(tab, name, placeholder, callback)
-    local textbox = {
-        Name = name,
-        Value = "",
-        Placeholder = placeholder or "Enter text...",
-        Callback = callback or function() end
-    }
-    
-    local textboxFrame = Instance.new("Frame")
-    textboxFrame.Name = name .. "Textbox"
-    textboxFrame.Size = UDim2.new(1, 0, 0, 35)
-    textboxFrame.BackgroundColor3 = config.BackgroundColor
-    textboxFrame.BorderSizePixel = 0
-    textboxFrame.Parent = tab.ScrollingFrame
-    
-    local textboxCorner = Instance.new("UICorner")
-    textboxCorner.CornerRadius = UDim.new(0, 6)
-    textboxCorner.Parent = textboxFrame
-    
-    local textboxLabel = Instance.new("TextLabel")
-    textboxLabel.Name = "Label"
-    textboxLabel.Size = UDim2.new(0.4, 0, 1, 0)
-    textboxLabel.Position = UDim2.new(0, 10, 0, 0)
-    textboxLabel.BackgroundTransparency = 1
-    textboxLabel.Text = name
-    textboxLabel.TextColor3 = config.TextColor
-    textboxLabel.TextScaled = true
-    textboxLabel.Font = Enum.Font.Gotham
-    textboxLabel.TextXAlignment = Enum.TextXAlignment.Left
-    textboxLabel.Parent = textboxFrame
-    
-    local textboxInput = Instance.new("TextBox")
-    textboxInput.Name = "Input"
-    textboxInput.Size = UDim2.new(0.55, 0, 0, 25)
-    textboxInput.Position = UDim2.new(0.4, 10, 0.5, -12.5)
-    textboxInput.BackgroundColor3 = config.MainColor
-    textboxInput.BorderSizePixel = 0
-    textboxInput.Text = ""
-    textboxInput.PlaceholderText = textbox.Placeholder
-    textboxInput.TextColor3 = config.TextColor
-    textboxInput.PlaceholderColor3 = config.DisabledColor
-    textboxInput.TextScaled = true
-    textboxInput.Font = Enum.Font.Gotham
-    textboxInput.Parent = textboxFrame
-    
-    local inputCorner = Instance.new("UICorner")
-    inputCorner.CornerRadius = UDim.new(0, 4)
-    inputCorner.Parent = textboxInput
-    
-    textboxInput.FocusLost:Connect(function()
-        textbox.Value = textboxInput.Text
-        textbox.Callback(textboxInput.Text)
-    end)
-    
-    table.insert(tab.Elements, textbox)
-    return textbox
-end
-
--- Create Label
-function DogHub:CreateLabel(tab, text)
-    local label = {
-        Name = "Label",
-        Text = text or "Label"
-    }
-    
-    local labelFrame = Instance.new("TextLabel")
-    labelFrame.Name = "Label"
-    labelFrame.Size = UDim2.new(1, 0, 0, 25)
-    labelFrame.BackgroundTransparency = 1
-    labelFrame.Text = text
-    labelFrame.TextColor3 = config.TextColor
-    labelFrame.TextScaled = true
-    labelFrame.Font = Enum.Font.Gotham
-    labelFrame.TextXAlignment = Enum.TextXAlignment.Left
-    labelFrame.Parent = tab.ScrollingFrame
-    
-    table.insert(tab.Elements, label)
-    return label
-end
-
--- Create Keybind
-function DogHub:CreateKeybind(tab, name, defaultKey, callback)
-    local keybind = {
-        Name = name,
-        Key = defaultKey or Enum.KeyCode.F,
-        Callback = callback or function() end,
-        Listening = false
-    }
-    
-    local keybindFrame = Instance.new("Frame")
-    keybindFrame.Name = name .. "Keybind"
-    keybindFrame.Size = UDim2.new(1, 0, 0, 35)
-    keybindFrame.BackgroundColor3 = config.BackgroundColor
-    keybindFrame.BorderSizePixel = 0
-    keybindFrame.Parent = tab.ScrollingFrame
-    
-    local keybindCorner = Instance.new("UICorner")
-    keybindCorner.CornerRadius = UDim.new(0, 6)
-    keybindCorner.Parent = keybindFrame
-    
-    local keybindLabel = Instance.new("TextLabel")
-    keybindLabel.Name = "Label"
-    keybindLabel.Size = UDim2.new(0.6, 0, 1, 0)
-    keybindLabel.Position = UDim2.new(0, 10, 0, 0)
-    keybindLabel.BackgroundTransparency = 1
-    keybindLabel.Text = name
-    keybindLabel.TextColor3 = config.TextColor
-    keybindLabel.TextScaled = true
-    keybindLabel.Font = Enum.Font.Gotham
-    keybindLabel.TextXAlignment = Enum.TextXAlignment.Left
-    keybindLabel.Parent = keybindFrame
-    
-    local keybindBtn = Instance.new("TextButton")
-    keybindBtn.Name = "KeybindBtn"
-    keybindBtn.Size = UDim2.new(0.35, 0, 0, 25)
-    keybindBtn.Position = UDim2.new(0.6, 10, 0.5, -12.5)
-    keybindBtn.BackgroundColor3 = config.MainColor
-    keybindBtn.BorderSizePixel = 0
-    keybindBtn.Text = keybind.Key.Name
-    keybindBtn.TextColor3 = config.TextColor
-    keybindBtn.TextScaled = true
-    keybindBtn.Font = Enum.Font.GothamBold
-    keybindBtn.Parent = keybindFrame
-    
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 4)
-    btnCorner.Parent = keybindBtn
-    
-    -- Keybind listening
-    keybindBtn.MouseButton1Click:Connect(function()
-        if not keybind.Listening then
-            keybind.Listening = true
-            keybindBtn.Text = "..."
-            keybindBtn.BackgroundColor3 = config.AccentColor
-        end
-    end)
-    
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        
-        if keybind.Listening and input.UserInputType == Enum.UserInputType.Keyboard then
-            keybind.Key = input.KeyCode
-            keybindBtn.Text = input.KeyCode.Name
-            keybindBtn.BackgroundColor3 = config.MainColor
-            keybind.Listening = false
-        elseif not keybind.Listening and input.KeyCode == keybind.Key then
-            keybind.Callback()
-        end
-    end)
-    
-    table.insert(tab.Elements, keybind)
-    return keybind
-end
-
--- Create Section (Separator)
+-- Create Section Function
 function DogHub:CreateSection(tab, name)
     local section = {
         Name = name
@@ -921,7 +458,6 @@ function DogHub:CreateSection(tab, name)
     sectionLine.BorderSizePixel = 0
     sectionLine.Parent = sectionFrame
     
-    -- Add gradient effect to section line with matrix colors
     local gradient = Instance.new("UIGradient")
     gradient.Color = ColorSequence.new{
         ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 100, 50)),
@@ -950,7 +486,6 @@ end
 function DogHub:CreateNotification(title, text, duration)
     duration = duration or 3
     
-    -- Check if notification GUI already exists, if so destroy old ones
     for _, gui in pairs(playerGui:GetChildren()) do
         if gui.Name == "DogHubNotification" then
             gui:Destroy()
@@ -973,24 +508,10 @@ function DogHub:CreateNotification(title, text, duration)
     notificationCorner.CornerRadius = UDim.new(0, 8)
     notificationCorner.Parent = notificationFrame
     
-    -- Add hacker glow effect to notification
     local notificationStroke = Instance.new("UIStroke")
     notificationStroke.Color = config.AccentColor
     notificationStroke.Thickness = 2
     notificationStroke.Parent = notificationFrame
-    
-    -- Add Matrix-style background pattern
-    local pattern = Instance.new("Frame")
-    pattern.Name = "Pattern"
-    pattern.Size = UDim2.new(1, 0, 1, 0)
-    pattern.BackgroundColor3 = Color3.fromRGB(0, 20, 10)
-    pattern.BackgroundTransparency = 0.8
-    pattern.BorderSizePixel = 0
-    pattern.Parent = notificationFrame
-    
-    local patternCorner = Instance.new("UICorner")
-    patternCorner.CornerRadius = UDim.new(0, 8)
-    patternCorner.Parent = pattern
     
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Name = "Title"
@@ -1017,7 +538,6 @@ function DogHub:CreateNotification(title, text, duration)
     textLabel.TextWrapped = true
     textLabel.Parent = notificationFrame
     
-    -- Animate in with hacker effect
     notificationFrame:TweenPosition(
         UDim2.new(1, -360, 1, -100),
         "Out",
@@ -1026,12 +546,10 @@ function DogHub:CreateNotification(title, text, duration)
         true
     )
     
-    -- Auto remove
     game:GetService("Debris"):AddItem(notificationGui, duration + 0.5)
     
     wait(duration)
     
-    -- Animate out with hacker effect
     notificationFrame:TweenPosition(
         UDim2.new(1, 10, 1, -100),
         "In",
@@ -1049,7 +567,6 @@ local function updateContentSize(scrollingFrame)
     end
 end
 
--- Connect auto-resize to all tabs
 RunService.Heartbeat:Connect(function()
     for _, gui in pairs(playerGui:GetChildren()) do
         if gui.Name == "DogHub" then
@@ -1065,149 +582,43 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Example Usage Function
+-- Example Usage
 function DogHub:Example()
-    -- Create main window
-    local window = self:CreateWindow("DOGHUB")
+    local window = self:CreateWindow("DOGHUB HACKER")
     
-    -- Create tabs with hacker icons
-    local farmingTab = self:CreateTab(window, "Farming", "⚡")
-    local visualsTab = self:CreateTab(window, "Gun Visuals", "🎯")
-    local ambientTab = self:CreateTab(window, "Ambient", "🌐")
-    local funTab = self:CreateTab(window, "Fun", "💀")
-    local miscTab = self:CreateTab(window, "MISC", "⚙️")
+    local mainTab = self:CreateTab(window, "Main", "⚡")
+    local settingsTab = self:CreateTab(window, "Settings", "⚙️")
     
-    -- Farming Tab Elements with hacker theme
-    self:CreateSection(farmingTab, "EXPLOIT_FARMING")
+    self:CreateSection(mainTab, "PLAYER_HACKS")
     
-    self:CreateToggle(farmingTab, "Auto Farmer", false, function(value)
-        print("Auto Farmer:", value)
+    self:CreateToggle(mainTab, "Speed Hack", false, function(value)
+        _G.SpeedHack = value
         if value then
-            DogHub:CreateNotification("EXPLOIT", "FARMING MODULE ACTIVATED", 2)
+            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 100
+            self:CreateNotification("HACK", "SPEED HACK ACTIVATED", 2)
+        else
+            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 16
         end
     end)
     
-    self:CreateToggle(farmingTab, "Scourge Hack", false, function(value)
-        print("Scourge Hack:", value)
+    self:CreateButton(mainTab, "Reset Character", function()
+        game.Players.LocalPlayer.Character.Humanoid.Health = 0
+        self:CreateNotification("SYSTEM", "CHARACTER RESET EXECUTED", 2)
     end)
     
-    self:CreateSlider(farmingTab, "Height Override", 0, 20, 10, function(value)
-        print("Height Override:", value)
+    self:CreateSection(settingsTab, "INTERFACE")
+    
+    self:CreateButton(settingsTab, "Test Notification", function()
+        self:CreateNotification("TEST", "NOTIFICATION SYSTEM OPERATIONAL", 3)
     end)
-    
-    self:CreateSection(farmingTab, "AUTO_COLLECTION")
-    
-    self:CreateDropdown(farmingTab, "Target Keycard", {"Green Access", "Blue Access", "Red Access"}, "Green Access", function(value)
-        print("Target Keycard:", value)
-    end)
-    
-    self:CreateToggle(farmingTab, "Item Collector", false, function(value)
-        print("Item Collector:", value)
-    end)
-    
-    -- Gun Visuals Tab with hacker enhancements
-    self:CreateSection(visualsTab, "WEAPON_MODS")
-    
-    self:CreateToggle(visualsTab, "Recoil Nullifier", false, function(value)
-        print("Recoil Nullifier:", value)
-    end)
-    
-    self:CreateToggle(visualsTab, "Spread Override", false, function(value)
-        print("Spread Override:", value)
-    end)
-    
-    self:CreateSlider(visualsTab, "FOV Hack", 70, 120, 90, function(value)
-        print("FOV Hack:", value)
-    end)
-    
-    -- Ambient Tab
-    self:CreateSection(ambientTab, "ENVIRONMENT_HACK")
-    
-    self:CreateToggle(ambientTab, "Matrix Mode", false, function(value)
-        print("Matrix Mode:", value)
-    end)
-    
-    self:CreateSlider(ambientTab, "Light Override", 0, 10, 1, function(value)
-        print("Light Override:", value)
-    end)
-    
-    self:CreateDropdown(ambientTab, "Sky Override", {"Default", "Matrix", "Cyber", "Void"}, "Default", function(value)
-        print("Sky Override:", value)
-    end)
-    
-    -- Fun Tab with hacker modifications
-    self:CreateSection(funTab, "PLAYER_HACKS")
-    
-    self:CreateSlider(funTab, "Speed Hack", 16, 100, 16, function(value)
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.WalkSpeed = value
-        end
-    end)
-    
-    self:CreateSlider(funTab, "Jump Override", 50, 200, 50, function(value)
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.JumpPower = value
-        end
-    end)
-    
-    self:CreateToggle(funTab, "Flight Mode", false, function(value)
-        print("Flight Mode:", value)
-    end)
-    
-    -- MISC Tab with enhanced hacker features
-    self:CreateSection(miscTab, "SYSTEM_CONTROL")
-    
-    self:CreateButton(miscTab, "Server Rejoin", function()
-        DogHub:CreateNotification("SYSTEM", "INITIATING SERVER RECONNECTION...", 2)
-        wait(1)
-        game:GetService("TeleportService"):Teleport(game.PlaceId, player)
-    end)
-    
-    self:CreateKeybind(miscTab, "Interface Toggle", Enum.KeyCode.Insert, function()
-        window.MainFrame.Visible = not window.MainFrame.Visible
-    end)
-    
-    -- Toggle Key Selector with hacker styling
-    self:CreateDropdown(miscTab, "Toggle Key Override", {
-        "Insert", "F1", "F2", "F3", "F4", "F5", "Home", "End", 
-        "PageUp", "PageDown", "Delete", "Backspace", "Tab"
-    }, "Insert", function(value)
-        local keyMap = {
-            ["Insert"] = Enum.KeyCode.Insert,
-            ["F1"] = Enum.KeyCode.F1,
-            ["F2"] = Enum.KeyCode.F2,
-            ["F3"] = Enum.KeyCode.F3,
-            ["F4"] = Enum.KeyCode.F4,
-            ["F5"] = Enum.KeyCode.F5,
-            ["Home"] = Enum.KeyCode.Home,
-            ["End"] = Enum.KeyCode.End,
-            ["PageUp"] = Enum.KeyCode.PageUp,
-            ["PageDown"] = Enum.KeyCode.PageDown,
-            ["Delete"] = Enum.KeyCode.Delete,
-            ["Backspace"] = Enum.KeyCode.Backspace,
-            ["Tab"] = Enum.KeyCode.Tab
-        }
-        
-        if keyMap[value] then
-            self:SetToggleKey(window, keyMap[value])
-        end
-    end)
-    
-    self:CreateTextbox(miscTab, "Command Input", "Enter command...", function(text)
-        print("Command Executed:", text)
-        DogHub:CreateNotification("COMMAND", "EXECUTED: " .. text, 2)
-    end)
-    
-    self:CreateButton(miscTab, "Test Notification", function()
-        DogHub:CreateNotification("TEST", "NOTIFICATION SYSTEM OPERATIONAL", 3)
-    end)
-    
-    self:CreateSection(miscTab, "CREDITS")
-    
-    self:CreateLabel(miscTab, "// DOGHUB HACKER EDITION //")
-    self:CreateLabel(miscTab, "// ACCESS LEVEL: MAXIMUM //")
     
     return window
 end
 
+-- Print success message
+print("DOGHUB HACKER EDITION LOADED SUCCESSFULLY!")
+print("Usage: DogHub:CreateWindow('Your Title')")
+print("Or try: DogHub:Example()")
+
+-- Return the library
 return DogHub
